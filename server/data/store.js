@@ -462,7 +462,10 @@ class DatabaseStore {
 
   save() {
     try {
-      fs.writeFileSync(DB_PATH, JSON.stringify(this.data, null, 2), 'utf-8');
+      // Write to a temp file then rename, so a crash mid-write can't leave a half-written db.json
+      const tmpPath = `${DB_PATH}.tmp`;
+      fs.writeFileSync(tmpPath, JSON.stringify(this.data, null, 2), 'utf-8');
+      fs.renameSync(tmpPath, DB_PATH);
     } catch (e) {
       console.error('Failed to persist db.json:', e);
     }
@@ -479,6 +482,18 @@ class DatabaseStore {
     this.data.users.push(user);
     this.save();
     return user;
+  }
+
+  updatePatient(id, updates) {
+    this.data.patients = this.data.patients.map((p) => (p.id === id ? { ...p, ...updates } : p));
+    this.save();
+    return this.data.patients.find((p) => p.id === id);
+  }
+
+  updateUser(id, updates) {
+    this.data.users = this.data.users.map((u) => (u.id === id ? { ...u, ...updates } : u));
+    this.save();
+    return this.data.users.find((u) => u.id === id);
   }
 
   addPatient(patient) {

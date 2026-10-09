@@ -40,7 +40,8 @@ export function PatientPortalPage() {
     bookAppointment, 
     cancelAppointment,
     generateDoctorSlots,
-    fetchBookedSlots
+    fetchBookedSlots,
+    updatePatient
   } = useClinic();
 
   // Fallback while the profile loads (or for an Admin previewing the portal) — never show another patient's data
@@ -66,6 +67,35 @@ export function PatientPortalPage() {
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const [selectedSlotTime, setSelectedSlotTime] = useState('');
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
+
+  // "Update my details" modal (patients may edit contact info and allergies)
+  const [detailsForm, setDetailsForm] = useState(null);
+  const [isSavingDetails, setIsSavingDetails] = useState(false);
+
+  const openDetails = () =>
+    setDetailsForm({
+      phone: currentPatient.phone === '—' ? '' : currentPatient.phone || '',
+      emergencyContact: currentPatient.emergencyContact === 'Not specified' ? '' : currentPatient.emergencyContact || '',
+      allergies: currentPatient.allergies === 'None known' ? '' : currentPatient.allergies || '',
+    });
+
+  const handleSaveDetails = async (e) => {
+    e.preventDefault();
+    if (!detailsForm.phone.trim()) {
+      toast.error('Phone number is required');
+      return;
+    }
+    setIsSavingDetails(true);
+    try {
+      await updatePatient(currentPatient.id, detailsForm);
+      toast.success('Your details have been updated');
+      setDetailsForm(null);
+    } catch (err) {
+      toast.error(err.message || 'Failed to update details');
+    } finally {
+      setIsSavingDetails(false);
+    }
+  };
 
   // Cancellation modal
   const [appointmentToCancel, setAppointmentToCancel] = useState(null);
@@ -232,8 +262,13 @@ export function PatientPortalPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="text-xs font-semibold text-slate-500">Phone: {currentPatient.phone}</span>
+            {currentPatient.id && (
+              <Button size="sm" variant="outline" onClick={openDetails}>
+                Update My Details
+              </Button>
+            )}
           </div>
         </div>
 
@@ -527,6 +562,55 @@ export function PatientPortalPage() {
       </Modal>
 
       {/* Printable Prescription Modal */}
+      {/* Update My Details Modal */}
+      <Modal
+        isOpen={!!detailsForm}
+        onClose={() => !isSavingDetails && setDetailsForm(null)}
+        title="Update My Details"
+        description="Keep your contact details and known allergies up to date. Other medical details are updated by clinic staff."
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDetailsForm(null)} disabled={isSavingDetails}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleSaveDetails} isLoading={isSavingDetails} disabled={isSavingDetails}>
+              Save Changes
+            </Button>
+          </>
+        }
+      >
+        {detailsForm && (
+          <form onSubmit={handleSaveDetails} className="space-y-4 text-left">
+            <FormField label="Phone" id="my-phone" required>
+              <Input
+                id="my-phone"
+                value={detailsForm.phone}
+                onChange={(e) => setDetailsForm({ ...detailsForm, phone: e.target.value })}
+                disabled={isSavingDetails}
+              />
+            </FormField>
+            <FormField label="Emergency Contact" id="my-emergency">
+              <Input
+                id="my-emergency"
+                placeholder="Name (relation) - phone"
+                value={detailsForm.emergencyContact}
+                onChange={(e) => setDetailsForm({ ...detailsForm, emergencyContact: e.target.value })}
+                disabled={isSavingDetails}
+              />
+            </FormField>
+            <FormField label="Known Allergies" id="my-allergies" helperText="Leave empty if none are known.">
+              <Input
+                id="my-allergies"
+                placeholder="e.g. Penicillin, Peanuts"
+                value={detailsForm.allergies}
+                onChange={(e) => setDetailsForm({ ...detailsForm, allergies: e.target.value })}
+                disabled={isSavingDetails}
+              />
+            </FormField>
+          </form>
+        )}
+      </Modal>
+
       {activePrescription && (
         <PrintablePrescription
           prescription={{

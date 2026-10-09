@@ -4,12 +4,21 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from './data/store.js';
 import { authenticateToken, requireRoles, JWT_SECRET } from './middleware/auth.js';
-import { todayISO } from './utils/date.js';
+import { todayISO, dayNameOf, parseTimeToMinutes, nowMinutes } from './utils/date.js';
 
 export const app = express();
 
+app.disable('x-powered-by');
 app.use(cors());
-app.use(express.json());
+// Basic security headers for every response
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+app.use(express.json({ limit: '100kb' }));
 
 const STAFF = ['Admin', 'Receptionist', 'Doctor'];
 const FRONT_DESK = ['Admin', 'Receptionist'];
@@ -50,6 +59,49 @@ function currentTime12h() {
   return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 6;
+
+/** Initials for an avatar, ignoring a "Dr." prefix: "Dr. Gregory House" -> "GH" */
+function initialsOf(name = '') {
+  return name
+    .replace(/^dr\.?\s+/i, '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+}
+
+// Simple in-memory brute-force protection for login: 10 failures per email+IP per 15 minutes
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_FAILURES = 10;
+const loginFailures = new Map();
+
+function loginKey(req, email) {
+  return `${req.ip}|${email}`;
+}
+
+function isLoginBlocked(key) {
+  const entry = loginFailures.get(key);
+  if (!entry) return false;
+  if (Date.now() - entry.first > LOGIN_WINDOW_MS) {
+    loginFailures.delete(key);
+    return false;
+  }
+  return entry.count >= LOGIN_MAX_FAILURES;
+}
+
+function recordLoginFailure(key) {
+  const entry = loginFailures.get(key);
+  if (!entry || Date.now() - entry.first > LOGIN_WINDOW_MS) {
+    loginFailures.set(key, { count: 1, first: Date.now() });
+  } else {
+    entry.count += 1;
+  }
+}
+
 /** Mask a patient name for public screens: "Emma Watson" -> "Emma W." */
 function maskName(name = '') {
   const [first, ...rest] = name.trim().split(/\s+/);
@@ -70,37 +122,6 @@ function generateToken(user) {
     JWT_SECRET,
     { expiresIn: '7d' }
   );
-}
-
-// Helpers for date and time slot validation
-function getTodayString() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function parseTimeToMinutes(timeStr) {
-  if (!timeStr) return 0;
-  const str = String(timeStr).trim();
-  const is12Hour = /am|pm/i.test(str);
-  if (is12Hour) {
-    const match = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-    if (!match) return 0;
-    let hours = parseInt(match[1], 10);
-    const minutes = parseInt(match[2], 10);
-    const meridiem = match[3].toUpperCase();
-    if (meridiem === 'PM' && hours < 12) hours += 12;
-    if (meridiem === 'AM' && hours === 12) hours = 0;
-    return hours * 60 + minutes;
-  } else {
-    const match = str.match(/^(\d{1,2}):(\d{2})/);
-    if (!match) return 0;
-    const hours = parseInt(match[1], 10);
-    const minutes = parseInt(match[2], 10);
-    return hours * 60 + minutes;
-  }
 }
 
 // ==========================================
@@ -125,11 +146,17 @@ app.post('/api/auth/signup', async (req, res) => {
       emergencyContact 
     } = req.body;
 
-    if (!name || !email || !password) {
+    if (!name || !String(name).trim() || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
+    const cleanEmail = String(email).toLowerCase().trim();
+    if (!EMAIL_RE.test(cleanEmail)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    if (String(password).length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+    }
 
     // Check if user already exists
     const existingUser = db.getUsers().find((u) => u.email.toLowerCase() === cleanEmail);
@@ -137,9 +164,13 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(409).json({ error: 'An account with this email address already exists' });
     }
 
-    // 1. Create Patient demographic record
-    const patientId = `pat-${Date.now()}`;
-    const newPatient = {
+    // 1. Patient record: reuse one the front desk already registered with this email (keeps visit history);
+    //    otherwise create a new one
+    const existingPatient = db
+      .getPatients()
+      .find((p) => (p.email || '').toLowerCase() === cleanEmail && !db.getUsers().some((u) => u.patientId === p.id));
+    const patientId = existingPatient ? existingPatient.id : `pat-${Date.now()}`;
+    const newPatient = existingPatient || {
       id: patientId,
       name: name.trim(),
       age: Number(age) || null,
@@ -151,7 +182,7 @@ app.post('/api/auth/signup', async (req, res) => {
       emergencyContact: emergencyContact || 'Not specified',
       createdAt: todayISO(),
     };
-    db.addPatient(newPatient);
+    if (!existingPatient) db.addPatient(newPatient);
 
     // 2. Hash password and create User record (Patient role only)
     const salt = await bcrypt.genSalt(10);
@@ -202,17 +233,19 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
+    const cleanEmail = String(email).toLowerCase().trim();
+    const key = loginKey(req, cleanEmail);
+    if (isLoginBlocked(key)) {
+      return res.status(429).json({ error: 'Too many failed login attempts. Please try again in 15 minutes.' });
+    }
+
     const user = db.getUsers().find((u) => u.email.toLowerCase() === cleanEmail);
-
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = user ? await bcrypt.compare(String(password), user.password) : false;
     if (!isMatch) {
+      recordLoginFailure(key);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+    loginFailures.delete(key);
 
     const token = generateToken(user);
 
@@ -285,6 +318,13 @@ app.post('/api/admin/users', authenticateToken, requireRoles('Admin'), async (re
       return res.status(400).json({ error: 'Name, email, password, and role are required' });
     }
 
+    if (!EMAIL_RE.test(String(email).toLowerCase().trim())) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    if (String(password).length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+    }
+
     if (!['Doctor', 'Receptionist', 'Admin'].includes(role)) {
       return res.status(400).json({ error: 'Invalid staff role specified. Must be Doctor, Receptionist, or Admin' });
     }
@@ -308,7 +348,7 @@ app.post('/api/admin/users', authenticateToken, requireRoles('Admin'), async (re
         specialty: specialty || 'General Medicine & Family Practice',
         room: room || `OPD 10${docCount}`,
         tokenPrefix: `D${docCount}`,
-        avatar: name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase(),
+        avatar: initialsOf(name),
         consultationFee: Number(consultationFee) || 600,
         workingDays: workingDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
         startTime: startTime || '09:00',
@@ -356,7 +396,7 @@ app.post('/api/admin/users', authenticateToken, requireRoles('Admin'), async (re
  * Admin only: List all staff accounts
  */
 app.get('/api/admin/users', authenticateToken, requireRoles('Admin'), (req, res) => {
-  const staff = db.getUsers().map((u) => ({
+  const staff = db.getUsers().filter((u) => u.role !== 'Patient').map((u) => ({
     id: u.id,
     name: u.name,
     email: u.email,
@@ -411,13 +451,47 @@ app.post('/api/appointments', authenticateToken, (req, res) => {
     const doctor = db.getDoctors().find((d) => d.id === doctorId);
     if (!doctor) return res.status(404).json({ error: 'Doctor not found' });
 
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: 'Date must be in YYYY-MM-DD format' });
+    }
+    const today = todayISO();
+    if (date < today) {
+      return res.status(400).json({ error: 'Appointments cannot be booked for past dates' });
+    }
+    if (!doctor.workingDays.includes(dayNameOf(date))) {
+      return res.status(409).json({ error: `${doctor.name} does not practice on ${dayNameOf(date)}s` });
+    }
+    const slotMinutes = parseTimeToMinutes(time);
+    if (slotMinutes === null) {
+      return res.status(400).json({ error: 'Invalid appointment time' });
+    }
+    // Patients must pick a real, upcoming slot; front-desk walk-ins today may use the current time
+    if (req.user.role === 'Patient') {
+      const startMinutes = parseTimeToMinutes(doctor.startTime);
+      const endMinutes = parseTimeToMinutes(doctor.endTime);
+      const duration = doctor.slotDuration || 15;
+      const onGrid = slotMinutes >= startMinutes && slotMinutes < endMinutes && (slotMinutes - startMinutes) % duration === 0;
+      if (!onGrid) {
+        return res.status(400).json({ error: 'Please choose one of the available consultation slots' });
+      }
+      if (date === today && slotMinutes <= nowMinutes()) {
+        return res.status(400).json({ error: 'This time slot has already passed' });
+      }
+    }
+
     if (doctor.leaves && doctor.leaves.includes(date)) {
       return res.status(409).json({ error: `${doctor.name} is on leave on ${date}` });
     }
 
     const slotTaken = db
       .getAppointments()
-      .some((a) => a.doctorId === doctorId && a.date === date && a.time === time && a.status !== 'Cancelled');
+      .some(
+        (a) =>
+          a.doctorId === doctorId &&
+          a.date === date &&
+          a.status !== 'Cancelled' &&
+          parseTimeToMinutes(a.time) === slotMinutes
+      );
     if (slotTaken) {
       return res.status(409).json({ error: 'This slot has already been booked. Please choose another time.' });
     }
@@ -496,6 +570,10 @@ app.patch('/api/appointments/:id/status', authenticateToken, requireRoles(...STA
   const allowed = STATUS_TRANSITIONS[apt.status] || [];
   if (!allowed.includes(status)) {
     return res.status(400).json({ error: `Cannot change status from '${apt.status}' to '${status}'` });
+  }
+
+  if (status === 'NoShow' && apt.date > todayISO()) {
+    return res.status(400).json({ error: 'A future appointment cannot be marked as a no-show' });
   }
 
   const updates = { status };
@@ -747,6 +825,21 @@ app.patch('/api/doctors/:id/schedule', authenticateToken, requireRoles(...STAFF)
 });
 
 /**
+ * PATCH /api/doctors/:id/fee   { consultationFee }
+ * Admin only: change a doctor's basic consultation fee (applies to new bookings)
+ */
+app.patch('/api/doctors/:id/fee', authenticateToken, requireRoles('Admin'), (req, res) => {
+  const doctor = db.getDoctors().find((d) => d.id === req.params.id);
+  if (!doctor) return res.status(404).json({ error: 'Doctor not found' });
+  const fee = Number(req.body.consultationFee);
+  if (!Number.isFinite(fee) || fee <= 0 || fee > 100000) {
+    return res.status(400).json({ error: 'Consultation fee must be a positive amount' });
+  }
+  const updated = db.updateDoctor(doctor.id, { consultationFee: Math.round(fee) });
+  return res.json({ doctor: updated });
+});
+
+/**
  * POST /api/doctors/:id/leaves   { date }
  * DELETE /api/doctors/:id/leaves/:date
  */
@@ -790,6 +883,57 @@ app.get('/api/patients', authenticateToken, (req, res) => {
 });
 
 /**
+ * PATCH /api/patients/:id
+ * Staff: update any demographic / medical field.
+ * Patients: update only their own phone, emergency contact and allergies.
+ */
+const STAFF_EDITABLE_PATIENT_FIELDS = ['name', 'age', 'gender', 'phone', 'email', 'bloodGroup', 'allergies', 'emergencyContact'];
+const PATIENT_EDITABLE_FIELDS = ['phone', 'allergies', 'emergencyContact'];
+
+app.patch('/api/patients/:id', authenticateToken, (req, res) => {
+  const patient = db.getPatients().find((p) => p.id === req.params.id);
+  if (!patient) return res.status(404).json({ error: 'Patient not found' });
+
+  const isPatient = req.user.role === 'Patient';
+  if (isPatient && req.user.patientId !== patient.id) {
+    return res.status(403).json({ error: 'Access denied: You can only update your own profile' });
+  }
+
+  const allowed = isPatient ? PATIENT_EDITABLE_FIELDS : STAFF_EDITABLE_PATIENT_FIELDS;
+  const updates = {};
+  for (const field of allowed) {
+    if (req.body[field] !== undefined) updates[field] = typeof req.body[field] === 'string' ? req.body[field].trim() : req.body[field];
+  }
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'No editable fields provided' });
+  }
+
+  if ('name' in updates && !updates.name) return res.status(400).json({ error: 'Patient name is required' });
+  if ('age' in updates) {
+    const age = Number(updates.age);
+    if (!Number.isFinite(age) || age <= 0 || age > 125) return res.status(400).json({ error: 'A valid age (1–125) is required' });
+    updates.age = age;
+  }
+  if ('phone' in updates && !updates.phone) return res.status(400).json({ error: 'Contact phone is required' });
+  if ('email' in updates) {
+    updates.email = String(updates.email || '').toLowerCase();
+    if (updates.email && !EMAIL_RE.test(updates.email)) return res.status(400).json({ error: 'Please enter a valid email address' });
+    const taken = updates.email && db.getPatients().some((p) => p.id !== patient.id && (p.email || '').toLowerCase() === updates.email);
+    if (taken) return res.status(409).json({ error: 'Another patient already uses this email address' });
+  }
+  if ('allergies' in updates && !updates.allergies) updates.allergies = 'None known';
+  if ('emergencyContact' in updates && !updates.emergencyContact) updates.emergencyContact = 'Not specified';
+
+  const updated = db.updatePatient(patient.id, updates);
+  // Keep the linked login account's display name in sync
+  if (updates.name) {
+    const linkedUser = db.getUsers().find((u) => u.patientId === patient.id);
+    if (linkedUser) db.updateUser(linkedUser.id, { name: updates.name });
+  }
+  return res.json({ patient: updated });
+});
+
+/**
  * POST /api/patients
  * Front desk / doctors: register a walk-in patient (no login account is created)
  */
@@ -821,6 +965,19 @@ app.post('/api/patients', authenticateToken, requireRoles(...STAFF), (req, res) 
   };
   db.addPatient(patient);
   return res.status(201).json({ patient });
+});
+
+// Malformed JSON / oversized bodies / unexpected errors: always answer with JSON
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Request body is not valid JSON' });
+  }
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body is too large' });
+  }
+  console.error('Unhandled server error:', err);
+  return res.status(500).json({ error: 'Internal server error' });
 });
 
 export default app;

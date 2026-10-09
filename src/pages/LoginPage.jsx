@@ -12,6 +12,9 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { Button, FormField, Input } from '../components/ui';
 
+// Demo logins are shown in development, or in a build made with VITE_SHOW_DEMO_ACCOUNTS=true (e.g. a public demo)
+const SHOW_DEMO_ACCOUNTS = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEMO_ACCOUNTS === 'true';
+
 const DEMO_ACCOUNTS = [
   {
     role: 'Admin',
@@ -159,6 +162,7 @@ export function LoginPage() {
           </form>
 
           {/* Quick Demo Accounts Helper */}
+          {SHOW_DEMO_ACCOUNTS && (
           <div className="pt-5 border-t border-slate-100 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
@@ -198,6 +202,7 @@ export function LoginPage() {
               })}
             </div>
           </div>
+          )}
 
           {/* Public Patient Signup Callout */}
           <div className="pt-4 border-t border-slate-100 text-center">

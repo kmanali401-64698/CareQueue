@@ -149,6 +149,69 @@ check('duplicate patient email rejected', r.status === 409);
 r = await call('POST', '/api/patients', rec, { name: 'Test Walkin', age: 40, phone: '+1 555 0000' });
 check('patient registered', r.status === 201 && r.data.patient.id);
 
+// Booking date/time rules
+const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return iso(d); })();
+const nextSunday = (() => { const d = new Date(); d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7)); return iso(d); })();
+r = await call('POST', '/api/appointments', rec, { patientId: 'pat-2', doctorId: 'doc-1', date: yesterday, time: '10:00 AM' });
+check('past date rejected', r.status === 400);
+r = await call('POST', '/api/appointments', rec, { patientId: 'pat-2', doctorId: 'doc-1', date: nextSunday, time: '10:00 AM' });
+check('non-working day rejected', r.status === 409);
+r = await call('POST', '/api/appointments', pat, { doctorId: 'doc-1', date: futureDate, time: '10:07 AM' });
+check('patient must pick an on-grid slot', r.status === 400);
+r = await call('POST', '/api/appointments', pat, { doctorId: 'doc-1', date: futureDate, time: '06:00 PM' });
+check('patient slot outside working hours rejected', r.status === 400);
+r = await call('POST', '/api/appointments', rec, { patientId: 'pat-2', doctorId: 'doc-1', date: futureDate, time: 'banana' });
+check('invalid time rejected', r.status === 400);
+
+// Admin-only fee changes
+r = await call('PATCH', '/api/doctors/doc-1/fee', rec, { consultationFee: 900 });
+check('receptionist cannot change fees', r.status === 403);
+r = await call('PATCH', '/api/doctors/doc-1/fee', adm, { consultationFee: -5 });
+check('invalid fee rejected', r.status === 400);
+r = await call('PATCH', '/api/doctors/doc-1/fee', adm, { consultationFee: 1100 });
+check('admin updates fee', r.status === 200 && r.data.doctor.consultationFee === 1100);
+
+// Admin staff list excludes patients
+r = await call('GET', '/api/admin/users', adm);
+check('staff list has no patients', r.status === 200 && r.data.staff.length > 0 && r.data.staff.every((u) => u.role !== 'Patient'));
+
+// Signup validation & linking to an existing front-desk patient record
+r = await call('POST', '/api/auth/signup', null, { name: 'X', email: 'not-an-email', password: 'secret1' });
+check('signup rejects bad email', r.status === 400);
+r = await call('POST', '/api/auth/signup', null, { name: 'X', email: 'x@example.com', password: '123' });
+check('signup rejects short password', r.status === 400);
+const walkin = (await call('POST', '/api/patients', rec, { name: 'Linked Walkin', age: 33, phone: '+91 90000 00000', email: 'linked@example.com', bloodGroup: 'B-' })).data.patient;
+r = await call('POST', '/api/auth/signup', null, { name: 'Linked Walkin', email: 'linked@example.com', password: 'secret1' });
+check('signup links existing patient record', r.status === 201 && r.data.user.patientId === walkin.id && r.data.patient.bloodGroup === 'B-', JSON.stringify(r.data).slice(0, 200));
+
+// Editing patient details
+r = await call('PATCH', '/api/patients/pat-1', rec, { allergies: 'Penicillin, Latex', bloodGroup: 'O+', age: 30 });
+check('staff updates patient record', r.status === 200 && r.data.patient.allergies === 'Penicillin, Latex' && r.data.patient.age === 30);
+r = await call('PATCH', '/api/patients/pat-1', rec, { age: 500 });
+check('invalid patient age rejected', r.status === 400);
+r = await call('PATCH', '/api/patients/pat-1', pat, { phone: '+91 98765 43210', bloodGroup: 'AB-' });
+check('patient updates own contact (blood group ignored)', r.status === 200 && r.data.patient.phone === '+91 98765 43210' && r.data.patient.bloodGroup === 'O+');
+r = await call('PATCH', '/api/patients/pat-2', pat, { phone: '123' });
+check("patient cannot edit someone else's record", r.status === 403);
+
+// No-show rules
+const futureBooking = (await call('POST', '/api/appointments', rec, { patientId: 'pat-4', doctorId: 'doc-1', date: futureDate, time: '11:00 AM' })).data.appointment;
+r = await call('PATCH', `/api/appointments/${futureBooking.id}/status`, rec, { status: 'NoShow' });
+check('future appointment cannot be a no-show', r.status === 400);
+const todayBooked = (await call('GET', '/api/appointments', rec)).data.appointments.find((a) => a.date === TODAY && a.status === 'Booked');
+r = await call('PATCH', `/api/appointments/${todayBooked.id}/status`, rec, { status: 'NoShow' });
+check("today's booking can be marked no-show", r.status === 200 && r.data.appointment.status === 'NoShow');
+
+// Hardening
+const raw = await fetch(BASE + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{bad json' });
+check('malformed JSON gets a JSON 400', raw.status === 400 && (await raw.json()).error === 'Request body is not valid JSON');
+check('security headers set', raw.headers.get('x-content-type-options') === 'nosniff' && !raw.headers.get('x-powered-by'));
+
+// Login brute-force protection
+for (let i = 0; i < 10; i++) await call('POST', '/api/auth/login', null, { email: 'admin@carequeue.org', password: 'wrong' });
+r = await call('POST', '/api/auth/login', null, { email: 'admin@carequeue.org', password: 'admin123' });
+check('login locked after 10 failures', r.status === 429);
+
 // Auth edge cases
 r = await call('GET', '/api/appointments', 'garbage');
 check('bad token rejected', r.status === 403);

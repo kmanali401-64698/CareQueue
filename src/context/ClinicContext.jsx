@@ -195,9 +195,23 @@ export function ClinicProvider({ children }) {
     return patient;
   };
 
+  /** Update a patient's details (staff: any field; patients: own phone / allergies / emergency contact). */
+  const updatePatient = async (patientId, fields) => {
+    const { patient } = await api(`/api/patients/${patientId}`, { method: 'PATCH', body: fields });
+    setPatients((prev) => prev.map((p) => (p.id === patient.id ? patient : p)));
+    return patient;
+  };
+
   /** Update doctor schedule (workingDays, startTime, endTime, slotDuration). */
   const updateDoctorSchedule = async (doctorId, scheduleUpdate) => {
     const { doctor } = await api(`/api/doctors/${doctorId}/schedule`, { method: 'PATCH', body: scheduleUpdate });
+    replaceDoctor(doctor);
+    return doctor;
+  };
+
+  /** Change a doctor's basic consultation fee (Admin only; applies to new bookings). */
+  const updateDoctorFee = async (doctorId, consultationFee) => {
+    const { doctor } = await api(`/api/doctors/${doctorId}/fee`, { method: 'PATCH', body: { consultationFee } });
     replaceDoctor(doctor);
     return doctor;
   };
@@ -344,8 +358,10 @@ export function ClinicProvider({ children }) {
         addDoctorLeave,
         removeDoctorLeave,
         updateDoctorSchedule,
+        updateDoctorFee,
         getDoctorBookingsOnDate,
         addPatient,
+        updatePatient,
         cancelAppointment,
         bookAppointment,
         updateAppointmentStatus,

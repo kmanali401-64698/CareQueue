@@ -10,6 +10,8 @@ import {
   Edit3
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
+import { useAuth } from '../context/AuthContext';
+import { formatRs } from '../utils/currency';
 import { todayISO } from '../utils/date';
 import { 
   PageHeader, 
@@ -27,6 +29,9 @@ import {
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+// Past leave dates are history; only show today and later
+const upcomingLeaves = (doctor) => (doctor.leaves || []).filter((d) => d >= todayISO());
+
 export function DoctorsPage() {
   const { 
     doctors, 
@@ -34,9 +39,17 @@ export function DoctorsPage() {
     addDoctorLeave, 
     removeDoctorLeave,
     updateDoctorSchedule,
+    updateDoctorFee,
     getDoctorBookingsOnDate 
   } = useClinic();
   
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
+  const ownDoctorId = user?.role === 'Doctor' ? user.doctorId : null;
+  // Doctors can only manage their own roster; Admin & Receptionist manage everyone
+  const canManage = (doctorId) => !ownDoctorId || ownDoctorId === doctorId;
+  const manageableDoctors = ownDoctorId ? doctors.filter((d) => d.id === ownDoctorId) : doctors;
+
   // Selected Doctor for slot simulator
   const [selectedDoctorId, setSelectedDoctorId] = useState(doctors[0]?.id || '');
   const [testDate, setTestDate] = useState(todayISO()); // Today's date
@@ -49,6 +62,7 @@ export function DoctorsPage() {
     startTime: '09:00',
     endTime: '13:00',
     slotDuration: 15,
+    consultationFee: '',
   });
 
   // Mark Leave Modal State
@@ -73,6 +87,7 @@ export function DoctorsPage() {
       startTime: doc.startTime,
       endTime: doc.endTime,
       slotDuration: doc.slotDuration || 15,
+      consultationFee: doc.consultationFee ?? '',
     });
     setIsEditScheduleModalOpen(true);
   };
@@ -100,6 +115,11 @@ export function DoctorsPage() {
       return;
     }
 
+    if (isAdmin && !(Number(editForm.consultationFee) > 0)) {
+      toast.error('Consultation fee must be a positive amount');
+      return;
+    }
+
     try {
       await updateDoctorSchedule(editingDoctor.id, {
         workingDays: editForm.workingDays,
@@ -107,6 +127,9 @@ export function DoctorsPage() {
         endTime: editForm.endTime,
         slotDuration: Number(editForm.slotDuration),
       });
+      if (isAdmin && Number(editForm.consultationFee) !== editingDoctor.consultationFee) {
+        await updateDoctorFee(editingDoctor.id, Number(editForm.consultationFee));
+      }
       toast.success(`Schedule updated for ${editingDoctor.name}`);
       setIsEditScheduleModalOpen(false);
     } catch (err) {
@@ -177,7 +200,7 @@ export function DoctorsPage() {
           <Button
             variant="primary"
             icon={UserX}
-            onClick={() => handleOpenMarkLeave(selectedDoctorId)}
+            onClick={() => handleOpenMarkLeave(ownDoctorId || selectedDoctorId)}
           >
             Mark Doctor Leave
           </Button>
@@ -257,6 +280,12 @@ export function DoctorsPage() {
                     </span>
                   </div>
 
+                  {/* Basic Consultation Fee */}
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-slate-500">Basic Consultation Fee:</span>
+                    <span className="font-mono font-semibold text-slate-900">{formatRs(doctor.consultationFee)}</span>
+                  </div>
+
                   {/* Upcoming Leave List */}
                   <div className="pt-2 border-t border-slate-100">
                     <div className="flex items-center justify-between mb-1.5">
@@ -264,33 +293,37 @@ export function DoctorsPage() {
                         <UserX className="w-3.5 h-3.5 text-rose-500" />
                         Upcoming Leaves:
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenMarkLeave(doctor.id)}
-                        className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline"
-                      >
-                        + Mark Leave
-                      </button>
+                      {canManage(doctor.id) && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenMarkLeave(doctor.id)}
+                          className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline"
+                        >
+                          + Mark Leave
+                        </button>
+                      )}
                     </div>
 
-                    {doctor.leaves.length === 0 ? (
+                    {upcomingLeaves(doctor).length === 0 ? (
                       <span className="text-[11px] text-slate-400 italic">No leaves scheduled</span>
                     ) : (
                       <div className="flex flex-wrap gap-1.5 mt-1">
-                        {doctor.leaves.map((leaveDate) => (
+                        {upcomingLeaves(doctor).map((leaveDate) => (
                           <span
                             key={leaveDate}
                             className="inline-flex items-center gap-1 text-[11px] font-mono font-medium bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md"
                           >
                             {leaveDate}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveLeave(doctor.id, leaveDate)}
-                              className="text-rose-400 hover:text-rose-700 ml-0.5 font-bold"
-                              title="Remove leave"
-                            >
-                              ×
-                            </button>
+                            {canManage(doctor.id) && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveLeave(doctor.id, leaveDate)}
+                                className="text-rose-400 hover:text-rose-700 ml-0.5 font-bold"
+                                title="Remove leave"
+                              >
+                                ×
+                              </button>
+                            )}
                           </span>
                         ))}
                       </div>
@@ -301,14 +334,18 @@ export function DoctorsPage() {
 
               {/* Card Actions Footer */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  icon={Edit3}
-                  onClick={() => handleOpenEditSchedule(doctor)}
-                >
-                  Edit Schedule
-                </Button>
+                {canManage(doctor.id) ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    icon={Edit3}
+                    onClick={() => handleOpenEditSchedule(doctor)}
+                  >
+                    {isAdmin ? 'Edit Schedule & Fee' : 'Edit Schedule'}
+                  </Button>
+                ) : (
+                  <span />
+                )}
 
                 <Button
                   size="sm"
@@ -520,6 +557,23 @@ export function DoctorsPage() {
               </Select>
             </FormField>
           </div>
+
+          {isAdmin && (
+            <FormField
+              label="Basic Consultation Fee (Rs.)"
+              id="edit-fee"
+              required
+              helperText="Applies to new bookings. Extra charges and discounts are added at payment time."
+            >
+              <Input
+                id="edit-fee"
+                type="number"
+                min="1"
+                value={editForm.consultationFee}
+                onChange={(e) => setEditForm({ ...editForm, consultationFee: e.target.value })}
+              />
+            </FormField>
+          )}
         </form>
       </Modal>
 
@@ -555,7 +609,7 @@ export function DoctorsPage() {
                   setLeaveError('');
                 }}
               >
-                {doctors.map((d) => (
+                {manageableDoctors.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name} ({d.specialty})
                   </option>

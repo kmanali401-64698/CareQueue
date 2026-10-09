@@ -32,21 +32,23 @@ import {
 } from '../components/ui';
 
 export function PatientsPage() {
-  const { patients, pastVisits, getPatientHistory, addPatient } = useClinic();
+  const { patients, pastVisits, getPatientHistory, addPatient, updatePatient } = useClinic();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPatientForProfile, setSelectedPatientForProfile] = useState(null);
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false);
+  // null = registering a new patient; otherwise the id of the patient being edited
+  const [editingPatientId, setEditingPatientId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // New Patient Form State
   const initialFormState = {
     name: '',
     age: '',
-    gender: 'Female',
+    gender: '',
     phone: '',
     email: '',
-    bloodGroup: 'O+',
+    bloodGroup: 'Unknown',
     allergies: '',
     emergencyContact: '',
   };
@@ -72,13 +74,61 @@ export function PatientsPage() {
       errors.age = 'Please enter a valid age (1–125)';
     }
     if (!patientForm.phone.trim()) errors.phone = 'Contact phone number is required';
+    if (!patientForm.gender) errors.gender = 'Please select a gender';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+
+  const openRegisterPatient = () => {
+    setEditingPatientId(null);
+    setPatientForm(initialFormState);
+    setFormErrors({});
+    setIsAddPatientModalOpen(true);
+  };
+
+  const openEditPatient = (patient) => {
+    setEditingPatientId(patient.id);
+    setPatientForm({
+      name: patient.name || '',
+      age: patient.age ?? '',
+      gender: patient.gender || '',
+      phone: patient.phone || '',
+      email: patient.email || '',
+      bloodGroup: patient.bloodGroup || 'Unknown',
+      allergies: patient.allergies === 'None known' ? '' : patient.allergies || '',
+      emergencyContact: patient.emergencyContact === 'Not specified' ? '' : patient.emergencyContact || '',
+    });
+    setFormErrors({});
+    setIsAddPatientModalOpen(true);
   };
 
   const handleCreatePatient = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+
+    if (editingPatientId) {
+      setIsSubmitting(true);
+      try {
+        const updated = await updatePatient(editingPatientId, {
+          name: patientForm.name.trim(),
+          age: Number(patientForm.age),
+          gender: patientForm.gender,
+          phone: patientForm.phone.trim(),
+          email: patientForm.email.trim(),
+          bloodGroup: patientForm.bloodGroup,
+          allergies: patientForm.allergies.trim(),
+          emergencyContact: patientForm.emergencyContact.trim(),
+        });
+        toast.success(`Details updated for ${updated.name}`);
+        setIsAddPatientModalOpen(false);
+        setSelectedPatientForProfile(updated);
+      } catch (err) {
+        toast.error(err.message || 'Failed to update patient');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -207,11 +257,7 @@ export function PatientsPage() {
           <Button
             variant="primary"
             icon={Plus}
-            onClick={() => {
-              setPatientForm(initialFormState);
-              setFormErrors({});
-              setIsAddPatientModalOpen(true);
-            }}
+            onClick={openRegisterPatient}
           >
             Add New Patient
           </Button>
@@ -287,7 +333,7 @@ export function PatientsPage() {
                       Clear Search
                     </Button>
                   ) : (
-                    <Button variant="primary" size="sm" icon={Plus} onClick={() => setIsAddPatientModalOpen(true)}>
+                    <Button variant="primary" size="sm" icon={Plus} onClick={openRegisterPatient}>
                       Add First Patient
                     </Button>
                   )
@@ -310,9 +356,14 @@ export function PatientsPage() {
             <div className="text-xs text-slate-500">
               {profileVisits.length} consultation {profileVisits.length === 1 ? 'record' : 'records'} on file
             </div>
-            <Button variant="outline" onClick={() => setSelectedPatientForProfile(null)}>
-              Close Profile
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => openEditPatient(selectedPatientForProfile)}>
+                Edit Details
+              </Button>
+              <Button variant="outline" onClick={() => setSelectedPatientForProfile(null)}>
+                Close Profile
+              </Button>
+            </div>
           </div>
         }
       >
@@ -498,8 +549,12 @@ export function PatientsPage() {
       <Modal
         isOpen={isAddPatientModalOpen}
         onClose={() => !isSubmitting && setIsAddPatientModalOpen(false)}
-        title="Register New Patient Profile"
-        description="Enter patient demographic details, emergency contact, and known allergies."
+        title={editingPatientId ? 'Edit Patient Details' : 'Register New Patient Profile'}
+        description={
+          editingPatientId
+            ? 'Correct demographic details or record newly discovered allergies.'
+            : 'Enter patient demographic details, emergency contact, and known allergies.'
+        }
         maxWidth="max-w-xl"
         footer={
           <>
@@ -516,7 +571,7 @@ export function PatientsPage() {
               disabled={isSubmitting}
               onClick={handleCreatePatient}
             >
-              Save Patient Profile
+              {editingPatientId ? 'Save Changes' : 'Save Patient Profile'}
             </Button>
           </>
         }
@@ -559,13 +614,14 @@ export function PatientsPage() {
               />
             </FormField>
 
-            <FormField label="Gender" id="patient-gender" required>
+            <FormField label="Gender" id="patient-gender" required error={formErrors.gender}>
               <Select
                 id="patient-gender"
                 value={patientForm.gender}
                 onChange={(e) => setPatientForm({ ...patientForm, gender: e.target.value })}
                 disabled={isSubmitting}
               >
+                <option value="" disabled>Select gender</option>
                 <option value="Female">Female</option>
                 <option value="Male">Male</option>
                 <option value="Non-binary">Non-binary</option>
@@ -598,7 +654,8 @@ export function PatientsPage() {
                 onChange={(e) => setPatientForm({ ...patientForm, bloodGroup: e.target.value })}
                 disabled={isSubmitting}
               >
-                <option value="O+">O+</option>
+                <option value="Unknown">Unknown / Not tested</option>
+                  <option value="O+">O+</option>
                 <option value="O-">O-</option>
                 <option value="A+">A+</option>
                 <option value="A-">A-</option>
