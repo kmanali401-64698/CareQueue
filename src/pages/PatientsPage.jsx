@@ -43,10 +43,10 @@ export function PatientsPage() {
   const initialFormState = {
     name: '',
     age: '',
-    gender: 'Female',
+    gender: '',
     phone: '',
     email: '',
-    bloodGroup: 'O+',
+    bloodGroup: 'Unknown',
     allergies: '',
     emergencyContact: '',
   };
@@ -72,6 +72,7 @@ export function PatientsPage() {
       errors.age = 'Please enter a valid age (1–125)';
     }
     if (!patientForm.phone.trim()) errors.phone = 'Contact phone number is required';
+    if (!patientForm.gender) errors.gender = 'Please select a gender';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -559,13 +560,14 @@ export function PatientsPage() {
               />
             </FormField>
 
-            <FormField label="Gender" id="patient-gender" required>
+            <FormField label="Gender" id="patient-gender" required error={formErrors.gender}>
               <Select
                 id="patient-gender"
                 value={patientForm.gender}
                 onChange={(e) => setPatientForm({ ...patientForm, gender: e.target.value })}
                 disabled={isSubmitting}
               >
+                <option value="" disabled>Select gender</option>
                 <option value="Female">Female</option>
                 <option value="Male">Male</option>
                 <option value="Non-binary">Non-binary</option>
@@ -598,7 +600,8 @@ export function PatientsPage() {
                 onChange={(e) => setPatientForm({ ...patientForm, bloodGroup: e.target.value })}
                 disabled={isSubmitting}
               >
-                <option value="O+">O+</option>
+                <option value="Unknown">Unknown / Not tested</option>
+                  <option value="O+">O+</option>
                 <option value="O-">O-</option>
                 <option value="A+">A+</option>
                 <option value="A-">A-</option>

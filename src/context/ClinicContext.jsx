@@ -202,6 +202,13 @@ export function ClinicProvider({ children }) {
     return doctor;
   };
 
+  /** Change a doctor's basic consultation fee (Admin only; applies to new bookings). */
+  const updateDoctorFee = async (doctorId, consultationFee) => {
+    const { doctor } = await api(`/api/doctors/${doctorId}/fee`, { method: 'PATCH', body: { consultationFee } });
+    replaceDoctor(doctor);
+    return doctor;
+  };
+
   /** Cancel an appointment (only allowed before check-in, i.e. status === 'Booked'). */
   const cancelAppointment = async (appointmentId) => {
     const apt = appointments.find((a) => a.id === appointmentId);
@@ -344,6 +351,7 @@ export function ClinicProvider({ children }) {
         addDoctorLeave,
         removeDoctorLeave,
         updateDoctorSchedule,
+        updateDoctorFee,
         getDoctorBookingsOnDate,
         addPatient,
         cancelAppointment,

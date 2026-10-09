@@ -462,7 +462,10 @@ class DatabaseStore {
 
   save() {
     try {
-      fs.writeFileSync(DB_PATH, JSON.stringify(this.data, null, 2), 'utf-8');
+      // Write to a temp file then rename, so a crash mid-write can't leave a half-written db.json
+      const tmpPath = `${DB_PATH}.tmp`;
+      fs.writeFileSync(tmpPath, JSON.stringify(this.data, null, 2), 'utf-8');
+      fs.renameSync(tmpPath, DB_PATH);
     } catch (e) {
       console.error('Failed to persist db.json:', e);
     }

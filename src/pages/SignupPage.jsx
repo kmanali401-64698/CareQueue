@@ -15,8 +15,8 @@ export function SignupPage() {
     password: '',
     phone: '',
     age: '',
-    gender: 'Female',
-    bloodGroup: 'O+',
+    gender: '',
+    bloodGroup: 'Unknown',
     allergies: '',
     emergencyContact: '',
   });
@@ -30,7 +30,8 @@ export function SignupPage() {
     if (!form.email.trim()) errs.email = 'Email address is required';
     if (!form.password || form.password.length < 6) errs.password = 'Password must be at least 6 characters';
     if (!form.phone.trim()) errs.phone = 'Phone number is required';
-    if (!form.age || isNaN(form.age) || Number(form.age) <= 0) errs.age = 'Valid age is required';
+    if (!form.age || isNaN(form.age) || Number(form.age) <= 0 || Number(form.age) > 125) errs.age = 'Valid age is required';
+    if (!form.gender) errs.gender = 'Please select a gender';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -142,13 +143,14 @@ export function SignupPage() {
                 />
               </FormField>
 
-              <FormField label="Gender" id="reg-gender">
+              <FormField label="Gender" id="reg-gender" required error={errors.gender}>
                 <Select
                   id="reg-gender"
                   value={form.gender}
                   onChange={(e) => setForm({ ...form, gender: e.target.value })}
                   disabled={isLoading}
                 >
+                  <option value="" disabled>Select gender</option>
                   <option value="Female">Female</option>
                   <option value="Male">Male</option>
                   <option value="Non-binary">Non-binary</option>
@@ -165,6 +167,7 @@ export function SignupPage() {
                   onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })}
                   disabled={isLoading}
                 >
+                  <option value="Unknown">Unknown / Not tested</option>
                   <option value="O+">O+</option>
                   <option value="O-">O-</option>
                   <option value="A+">A+</option>
