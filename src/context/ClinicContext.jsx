@@ -195,6 +195,13 @@ export function ClinicProvider({ children }) {
     return patient;
   };
 
+  /** Update a patient's details (staff: any field; patients: own phone / allergies / emergency contact). */
+  const updatePatient = async (patientId, fields) => {
+    const { patient } = await api(`/api/patients/${patientId}`, { method: 'PATCH', body: fields });
+    setPatients((prev) => prev.map((p) => (p.id === patient.id ? patient : p)));
+    return patient;
+  };
+
   /** Update doctor schedule (workingDays, startTime, endTime, slotDuration). */
   const updateDoctorSchedule = async (doctorId, scheduleUpdate) => {
     const { doctor } = await api(`/api/doctors/${doctorId}/schedule`, { method: 'PATCH', body: scheduleUpdate });
@@ -354,6 +361,7 @@ export function ClinicProvider({ children }) {
         updateDoctorFee,
         getDoctorBookingsOnDate,
         addPatient,
+        updatePatient,
         cancelAppointment,
         bookAppointment,
         updateAppointmentStatus,

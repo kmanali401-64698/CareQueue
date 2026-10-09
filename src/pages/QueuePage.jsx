@@ -204,6 +204,16 @@ export function QueuePage() {
               Check In
             </Button>
           )}
+          {['Booked', 'CheckedIn'].includes(row.status) && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+              onClick={() => changeStatus(id, 'NoShow', `${row.token} marked as no-show`)}
+            >
+              No Show
+            </Button>
+          )}
         </div>
       ),
     },

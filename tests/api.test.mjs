@@ -184,6 +184,29 @@ const walkin = (await call('POST', '/api/patients', rec, { name: 'Linked Walkin'
 r = await call('POST', '/api/auth/signup', null, { name: 'Linked Walkin', email: 'linked@example.com', password: 'secret1' });
 check('signup links existing patient record', r.status === 201 && r.data.user.patientId === walkin.id && r.data.patient.bloodGroup === 'B-', JSON.stringify(r.data).slice(0, 200));
 
+// Editing patient details
+r = await call('PATCH', '/api/patients/pat-1', rec, { allergies: 'Penicillin, Latex', bloodGroup: 'O+', age: 30 });
+check('staff updates patient record', r.status === 200 && r.data.patient.allergies === 'Penicillin, Latex' && r.data.patient.age === 30);
+r = await call('PATCH', '/api/patients/pat-1', rec, { age: 500 });
+check('invalid patient age rejected', r.status === 400);
+r = await call('PATCH', '/api/patients/pat-1', pat, { phone: '+91 98765 43210', bloodGroup: 'AB-' });
+check('patient updates own contact (blood group ignored)', r.status === 200 && r.data.patient.phone === '+91 98765 43210' && r.data.patient.bloodGroup === 'O+');
+r = await call('PATCH', '/api/patients/pat-2', pat, { phone: '123' });
+check("patient cannot edit someone else's record", r.status === 403);
+
+// No-show rules
+const futureBooking = (await call('POST', '/api/appointments', rec, { patientId: 'pat-4', doctorId: 'doc-1', date: futureDate, time: '11:00 AM' })).data.appointment;
+r = await call('PATCH', `/api/appointments/${futureBooking.id}/status`, rec, { status: 'NoShow' });
+check('future appointment cannot be a no-show', r.status === 400);
+const todayBooked = (await call('GET', '/api/appointments', rec)).data.appointments.find((a) => a.date === TODAY && a.status === 'Booked');
+r = await call('PATCH', `/api/appointments/${todayBooked.id}/status`, rec, { status: 'NoShow' });
+check("today's booking can be marked no-show", r.status === 200 && r.data.appointment.status === 'NoShow');
+
+// Hardening
+const raw = await fetch(BASE + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{bad json' });
+check('malformed JSON gets a JSON 400', raw.status === 400 && (await raw.json()).error === 'Request body is not valid JSON');
+check('security headers set', raw.headers.get('x-content-type-options') === 'nosniff' && !raw.headers.get('x-powered-by'));
+
 // Login brute-force protection
 for (let i = 0; i < 10; i++) await call('POST', '/api/auth/login', null, { email: 'admin@carequeue.org', password: 'wrong' });
 r = await call('POST', '/api/auth/login', null, { email: 'admin@carequeue.org', password: 'admin123' });

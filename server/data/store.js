@@ -484,6 +484,18 @@ class DatabaseStore {
     return user;
   }
 
+  updatePatient(id, updates) {
+    this.data.patients = this.data.patients.map((p) => (p.id === id ? { ...p, ...updates } : p));
+    this.save();
+    return this.data.patients.find((p) => p.id === id);
+  }
+
+  updateUser(id, updates) {
+    this.data.users = this.data.users.map((u) => (u.id === id ? { ...u, ...updates } : u));
+    this.save();
+    return this.data.users.find((u) => u.id === id);
+  }
+
   addPatient(patient) {
     this.data.patients.unshift(patient);
     this.save();

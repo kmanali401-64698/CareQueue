@@ -8,8 +8,17 @@ import { todayISO, dayNameOf, parseTimeToMinutes, nowMinutes } from './utils/dat
 
 export const app = express();
 
+app.disable('x-powered-by');
 app.use(cors());
-app.use(express.json());
+// Basic security headers for every response
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+app.use(express.json({ limit: '100kb' }));
 
 const STAFF = ['Admin', 'Receptionist', 'Doctor'];
 const FRONT_DESK = ['Admin', 'Receptionist'];
@@ -563,6 +572,10 @@ app.patch('/api/appointments/:id/status', authenticateToken, requireRoles(...STA
     return res.status(400).json({ error: `Cannot change status from '${apt.status}' to '${status}'` });
   }
 
+  if (status === 'NoShow' && apt.date > todayISO()) {
+    return res.status(400).json({ error: 'A future appointment cannot be marked as a no-show' });
+  }
+
   const updates = { status };
   if (status === 'CheckedIn' && !apt.checkedInAt) updates.checkedInAt = new Date().toISOString();
   if (status === 'Completed') updates.completedAt = new Date().toISOString();
@@ -870,6 +883,57 @@ app.get('/api/patients', authenticateToken, (req, res) => {
 });
 
 /**
+ * PATCH /api/patients/:id
+ * Staff: update any demographic / medical field.
+ * Patients: update only their own phone, emergency contact and allergies.
+ */
+const STAFF_EDITABLE_PATIENT_FIELDS = ['name', 'age', 'gender', 'phone', 'email', 'bloodGroup', 'allergies', 'emergencyContact'];
+const PATIENT_EDITABLE_FIELDS = ['phone', 'allergies', 'emergencyContact'];
+
+app.patch('/api/patients/:id', authenticateToken, (req, res) => {
+  const patient = db.getPatients().find((p) => p.id === req.params.id);
+  if (!patient) return res.status(404).json({ error: 'Patient not found' });
+
+  const isPatient = req.user.role === 'Patient';
+  if (isPatient && req.user.patientId !== patient.id) {
+    return res.status(403).json({ error: 'Access denied: You can only update your own profile' });
+  }
+
+  const allowed = isPatient ? PATIENT_EDITABLE_FIELDS : STAFF_EDITABLE_PATIENT_FIELDS;
+  const updates = {};
+  for (const field of allowed) {
+    if (req.body[field] !== undefined) updates[field] = typeof req.body[field] === 'string' ? req.body[field].trim() : req.body[field];
+  }
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'No editable fields provided' });
+  }
+
+  if ('name' in updates && !updates.name) return res.status(400).json({ error: 'Patient name is required' });
+  if ('age' in updates) {
+    const age = Number(updates.age);
+    if (!Number.isFinite(age) || age <= 0 || age > 125) return res.status(400).json({ error: 'A valid age (1–125) is required' });
+    updates.age = age;
+  }
+  if ('phone' in updates && !updates.phone) return res.status(400).json({ error: 'Contact phone is required' });
+  if ('email' in updates) {
+    updates.email = String(updates.email || '').toLowerCase();
+    if (updates.email && !EMAIL_RE.test(updates.email)) return res.status(400).json({ error: 'Please enter a valid email address' });
+    const taken = updates.email && db.getPatients().some((p) => p.id !== patient.id && (p.email || '').toLowerCase() === updates.email);
+    if (taken) return res.status(409).json({ error: 'Another patient already uses this email address' });
+  }
+  if ('allergies' in updates && !updates.allergies) updates.allergies = 'None known';
+  if ('emergencyContact' in updates && !updates.emergencyContact) updates.emergencyContact = 'Not specified';
+
+  const updated = db.updatePatient(patient.id, updates);
+  // Keep the linked login account's display name in sync
+  if (updates.name) {
+    const linkedUser = db.getUsers().find((u) => u.patientId === patient.id);
+    if (linkedUser) db.updateUser(linkedUser.id, { name: updates.name });
+  }
+  return res.json({ patient: updated });
+});
+
+/**
  * POST /api/patients
  * Front desk / doctors: register a walk-in patient (no login account is created)
  */
@@ -901,6 +965,19 @@ app.post('/api/patients', authenticateToken, requireRoles(...STAFF), (req, res) 
   };
   db.addPatient(patient);
   return res.status(201).json({ patient });
+});
+
+// Malformed JSON / oversized bodies / unexpected errors: always answer with JSON
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Request body is not valid JSON' });
+  }
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body is too large' });
+  }
+  console.error('Unhandled server error:', err);
+  return res.status(500).json({ error: 'Internal server error' });
 });
 
 export default app;

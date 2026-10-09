@@ -26,10 +26,11 @@ JWT_SECRET=change-me npm start      # serves dist/ and the API on PORT (default 
 | `PORT`       | `5000`                     | HTTP port for `npm start`                       |
 | `JWT_SECRET` | built-in dev secret        | **Set this in production.** Signs login tokens  |
 | `DB_PATH`    | `server/data/db.json`      | Location of the JSON database file              |
+| `VITE_SHOW_DEMO_ACCOUNTS` | off in production builds | Set to `true` **at build time** (`VITE_SHOW_DEMO_ACCOUNTS=true npm run build`) to show the 1-click demo logins on a public demo |
 
 ## Demo accounts
 
-Created by `npm run seed`:
+Created by `npm run seed`. The login page shows them as 1-click buttons in development only (see `VITE_SHOW_DEMO_ACCOUNTS`).
 
 | Role         | Email                        | Password       |
 |--------------|------------------------------|----------------|
@@ -54,9 +55,10 @@ Access is enforced on the server (every API route checks the JWT role); the fron
 ## Key workflows
 
 - **Booking:** slots are generated from each doctor's working days, hours and slot length. Leave days, past times and already-booked slots can't be booked (also enforced by the API). Queue tokens are per doctor per day (`D1-01`, `D1-02`, …).
-- **Queue:** Booked → Checked In → In Consultation → Completed (or No Show). Cancellation is only allowed before check-in.
+- **Queue:** Booked → Checked In → In Consultation → Completed, or No Show (from the appointment day onward). Cancellation is only allowed before check-in.
+- **Patient records:** staff can edit any patient detail (e.g. a newly discovered allergy); patients can update their own phone, emergency contact and allergies from the portal.
 - **Consultation:** the doctor records complaint, vitals, diagnosis (required) and medicines; completing the visit saves it to the patient's history and opens a printable prescription.
-- **Billing:** each doctor has a **basic consultation fee** (e.g. Rs. 600 / 1,000 / 1,200, set by the Admin). At payment the receptionist can add patient-specific charges (tests, procedures) and a discount; the receipt shows the breakdown and revenue reports count the amount actually collected. Amounts are in Indian Rupees.
+- **Billing:** each doctor has a **basic consultation fee** (e.g. Rs. 600 / 1,000 / 1,200; the Admin sets it when creating the doctor and can change it later under Doctor Rosters). At payment the receptionist can add patient-specific charges (tests, procedures) and a discount; the receipt shows the breakdown and revenue reports count the amount actually collected. Amounts are in Indian Rupees.
 - **Waiting-room TV** (`/display`): public, refreshes every 5 seconds, shows tokens with masked names (e.g. "Emma W.").
 
 ## Scripts
