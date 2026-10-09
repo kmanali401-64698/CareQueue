@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   Calendar,
@@ -181,7 +182,7 @@ export function AppointmentsPage() {
 
         return (
           <div className="flex items-center justify-end gap-1.5">
-            {row.status === 'Booked' && (
+            {row.status === 'Booked' && row.date === todayISO() && (
               <Button
                 size="sm"
                 variant="outline"
@@ -213,13 +214,11 @@ export function AppointmentsPage() {
             )}
 
             {row.status === 'InConsultation' && (
-              <Button
-                size="sm"
-                variant="primary"
-                onClick={() => changeStatus(id, 'Completed', `Appointment completed for ${row.patientName}`)}
-              >
-                Complete
-              </Button>
+              <Link to={`/consultation?appointment=${id}`}>
+                <Button size="sm" variant="primary">
+                  Diagnosis & Prescription
+                </Button>
+              </Link>
             )}
 
             {/* Cancel Appointment Button: Only allowed before check-in (Booked status) */}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   Stethoscope,
@@ -39,12 +40,24 @@ export function ConsultationPage() {
     doctors, 
     patients, 
     appointments, 
-    getPatientHistory, 
-    completeVisit
+    getPatientHistory,
+    completeVisit,
+    updateAppointmentStatus
   } = useClinic();
 
+  // Deep link from the queue: /consultation?appointment=<id> opens that patient directly
+  const [searchParams] = useSearchParams();
+  const linkedAppointment = appointments.find(
+    (a) =>
+      a.id === searchParams.get('appointment') &&
+      a.date === todayISO() &&
+      (user?.role !== 'Doctor' || a.doctorId === user.doctorId)
+  );
+
   // Active Doctor Selection (Doctor is bound to their own doctorId; Receptionist/Admin can switch)
-  const initialDoctorId = (user?.role === 'Doctor' && user?.doctorId) ? user.doctorId : (doctors[0]?.id || '');
+  const initialDoctorId = (user?.role === 'Doctor' && user?.doctorId)
+    ? user.doctorId
+    : (linkedAppointment?.doctorId || doctors[0]?.id || '');
   const [selectedDoctorId, setSelectedDoctorId] = useState(initialDoctorId);
   const activeDoctor = doctors.find((d) => d.id === selectedDoctorId) || doctors[0];
 
@@ -62,7 +75,7 @@ export function ConsultationPage() {
     doctorAppointments.find((a) => a.status === 'CheckedIn') ||
     doctorAppointments[0];
 
-  const [activeAppointmentId, setActiveAppointmentId] = useState(activeAptDefault?.id || '');
+  const [activeAppointmentId, setActiveAppointmentId] = useState(linkedAppointment?.id || activeAptDefault?.id || '');
   const activeAppointment = appointments.find((a) => a.id === activeAppointmentId) || activeAptDefault;
   const activePatient = patients.find((p) => p.id === activeAppointment?.patientId);
 
@@ -95,6 +108,25 @@ export function ConsultationPage() {
   };
 
   const canComplete = !!activeAppointment && ['CheckedIn', 'InConsultation'].includes(activeAppointment.status);
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
+
+  // Check in / call the patient in without leaving the consultation desk
+  const handleAdvanceStatus = async () => {
+    if (!activeAppointment) return;
+    const next = activeAppointment.status === 'Booked' ? 'CheckedIn' : 'InConsultation';
+    setIsChangingStatus(true);
+    try {
+      if (next === 'CheckedIn') {
+        await updateAppointmentStatus(activeAppointment.id, 'CheckedIn');
+      }
+      await updateAppointmentStatus(activeAppointment.id, 'InConsultation');
+      toast.success(`Consultation started for ${activeAppointment.patientName} (${activeAppointment.token})`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to start consultation');
+    } finally {
+      setIsChangingStatus(false);
+    }
+  };
 
   // Printable Prescription Modal state
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -182,7 +214,10 @@ export function ConsultationPage() {
         advice,
         clinicalNotes,
       });
-      toast.success(`Consultation completed for ${activeAppointment.patientName}! Added to patient medical history.`);
+      toast.success(
+        `Prescription saved for ${activeAppointment.patientName}. The visit is now waiting for payment at the front desk.`,
+        { duration: 5000 }
+      );
       // Automatically open the prescription for printing
       handleOpenPrintPreview();
     } catch (err) {
@@ -224,14 +259,25 @@ export function ConsultationPage() {
             >
               Print Prescription
             </Button>
+            {activeAppointment && ['Booked', 'CheckedIn'].includes(activeAppointment.status) && (
+              <Button
+                variant="outline"
+                onClick={handleAdvanceStatus}
+                isLoading={isChangingStatus}
+                disabled={isChangingStatus}
+              >
+                {activeAppointment.status === 'Booked' ? 'Check In & Start Consultation' : 'Start Consultation'}
+              </Button>
+            )}
             <Button
               variant="primary"
               icon={CheckCircle2}
               onClick={handleCompleteConsultation}
               disabled={!canComplete || isCompleting}
               isLoading={isCompleting}
+              title={canComplete ? '' : 'Check the patient in first'}
             >
-              Complete Visit & Discharge
+              Save Prescription & Complete Visit
             </Button>
           </div>
         }

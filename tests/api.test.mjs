@@ -41,6 +41,9 @@ const pat = await login('emma.watson@carequeue.org', 'patient123');
 const adm = await login('admin@carequeue.org', 'admin123');
 check('all roles log in', rec && doc && pat && adm);
 
+// Make doc-1 work every day so the same-day flow below runs on any weekday
+await call('PATCH', '/api/doctors/doc-1/schedule', adm, { workingDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], startTime: '09:00', endTime: '13:00', slotDuration: 15 });
+
 // Public queue
 let r = await call('GET', '/api/public/queue');
 check('public queue is today', r.data.date === TODAY && r.data.appointments.length > 0, JSON.stringify(r.data).slice(0, 200));
@@ -71,6 +74,11 @@ check('booking on leave day rejected', r.status === 409, JSON.stringify(r.data))
 r = await call('GET', `/api/doctors/doc-1/booked-slots?date=${futureDate}`, pat);
 check('booked-slots returns times', r.data.times?.includes('10:00 AM') && r.data.times.includes('10:15 AM'));
 
+// Same-day visit used for the queue -> consultation -> billing flow
+r = await call('POST', '/api/appointments', rec, { patientId: 'pat-2', doctorId: 'doc-1', date: TODAY, time: '11:59 PM' });
+check('same-day walk-in booked', r.status === 201, JSON.stringify(r.data));
+const visitApt = r.data.appointment;
+
 // Patient cannot cancel others
 r = await call('POST', `/api/appointments/${apt1.id}/cancel`, pat);
 check('patient cannot cancel others', r.status === 403);
@@ -78,14 +86,16 @@ r = await call('POST', `/api/appointments/${apt2.id}/cancel`, pat);
 check('patient cancels own', r.status === 200 && r.data.appointment.status === 'Cancelled');
 
 // Status flow + permissions
-r = await call('PATCH', `/api/appointments/${apt1.id}/status`, pat, { status: 'CheckedIn' });
+r = await call('PATCH', `/api/appointments/${visitApt.id}/status`, pat, { status: 'CheckedIn' });
 check('patient cannot change status', r.status === 403);
-r = await call('PATCH', `/api/appointments/${apt1.id}/status`, rec, { status: 'Completed' });
-check('invalid transition rejected', r.status === 400);
 r = await call('PATCH', `/api/appointments/${apt1.id}/status`, rec, { status: 'CheckedIn' });
+check('future appointment cannot be checked in', r.status === 400);
+r = await call('PATCH', `/api/appointments/${visitApt.id}/status`, rec, { status: 'CheckedIn' });
 check('check-in works', r.status === 200 && r.data.appointment.status === 'CheckedIn' && r.data.appointment.checkedInAt);
-r = await call('PATCH', `/api/appointments/${apt1.id}/status`, doc, { status: 'InConsultation' });
+r = await call('PATCH', `/api/appointments/${visitApt.id}/status`, doc, { status: 'InConsultation' });
 check('own doctor starts consult', r.status === 200);
+r = await call('PATCH', `/api/appointments/${visitApt.id}/status`, rec, { status: 'Completed' });
+check('status-only completion refused (prescription must be saved)', r.status === 400);
 
 // Doctor of another roster cannot act
 const apts = (await call('GET', '/api/appointments', rec)).data.appointments;
@@ -94,24 +104,27 @@ r = await call('PATCH', `/api/appointments/${doc3Apt.id}/status`, doc, { status:
 check("doctor cannot touch another doctor's queue", r.status === 403);
 
 // Complete visit
-r = await call('POST', `/api/appointments/${apt1.id}/complete`, doc, { diagnosis: '' });
+r = await call('POST', `/api/appointments/${visitApt.id}/complete`, doc, { diagnosis: '' });
 check('completion requires diagnosis', r.status === 400);
-r = await call('POST', `/api/appointments/${apt1.id}/complete`, doc, {
+r = await call('POST', `/api/appointments/${visitApt.id}/complete`, doc, {
   chiefComplaint: 'Cough', diagnosis: 'URTI (J06.9)', vitals: 'BP 120/80',
   medicines: [{ name: 'Paracetamol', dosage: '500mg', frequency: '1-0-1', duration: '3 days', instructions: '' }, { name: '  ' }],
 });
 check('visit completed', r.status === 201 && r.data.appointment.status === 'Completed');
 check('blank medicine rows dropped', r.data.visit?.medicines.length === 1);
+check('visit linked to its appointment', r.data.visit?.appointmentId === visitApt.id);
+r = await call('GET', '/api/visits', rec);
+check('prescription saved in visit history', r.data.visits.some((v) => v.appointmentId === visitApt.id && v.medicines[0]?.name === 'Paracetamol'));
 r = await call('GET', '/api/visits', pat);
 check('patient does not see other patient visits', r.data.visits.every((v) => v.patientId === 'pat-1'));
 
 // Payment
-r = await call('POST', `/api/appointments/${apt1.id}/pay`, doc, {});
+r = await call('POST', `/api/appointments/${visitApt.id}/pay`, doc, {});
 check('doctor cannot collect payment', r.status === 403);
-r = await call('POST', `/api/appointments/${apt1.id}/pay`, rec, { paymentMethod: 'Card' });
+r = await call('POST', `/api/appointments/${visitApt.id}/pay`, rec, { paymentMethod: 'Card' });
 check('payment creates receipt', r.status === 201 && /^RCP-\d{4}-\d+$/.test(r.data.receipt.receiptNumber) && r.data.receipt.total === 1000 && r.data.appointment.amountPaid === 1000, JSON.stringify(r.data).slice(0, 200));
 const rn = r.data.receipt?.receiptNumber;
-r = await call('POST', `/api/appointments/${apt1.id}/pay`, rec, {});
+r = await call('POST', `/api/appointments/${visitApt.id}/pay`, rec, {});
 check('double payment rejected', r.status === 400);
 r = await call('GET', '/api/receipts', rec);
 check('receipt persisted', r.data.receipts.some((x) => x.receiptNumber === rn));
@@ -133,7 +146,7 @@ check('invalid schedule rejected', r.status === 400);
 r = await call('PATCH', '/api/doctors/doc-1/schedule', doc, { workingDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], startTime: '09:00', endTime: '13:00', slotDuration: 20 });
 check('own schedule updated', r.status === 200 && r.data.doctor.slotDuration === 20);
 r = await call('POST', '/api/doctors/doc-1/leaves', rec, { date: futureDate });
-check('leave added with affected count', r.status === 201 && r.data.affectedBookings === 0 && r.data.doctor.leaves.includes(futureDate), JSON.stringify(r.data).slice(0, 200));
+check('leave added with affected count', r.status === 201 && r.data.affectedBookings === 1 && r.data.doctor.leaves.includes(futureDate), JSON.stringify(r.data).slice(0, 200));
 r = await call('POST', '/api/doctors/doc-1/leaves', rec, { date: futureDate });
 check('duplicate leave rejected', r.status === 409);
 r = await call('DELETE', `/api/doctors/doc-1/leaves/${futureDate}`, rec);
@@ -154,7 +167,7 @@ const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); ret
 const nextSunday = (() => { const d = new Date(); d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7)); return iso(d); })();
 r = await call('POST', '/api/appointments', rec, { patientId: 'pat-2', doctorId: 'doc-1', date: yesterday, time: '10:00 AM' });
 check('past date rejected', r.status === 400);
-r = await call('POST', '/api/appointments', rec, { patientId: 'pat-2', doctorId: 'doc-1', date: nextSunday, time: '10:00 AM' });
+r = await call('POST', '/api/appointments', rec, { patientId: 'pat-2', doctorId: 'doc-2', date: nextSunday, time: '10:00 AM' });
 check('non-working day rejected', r.status === 409);
 r = await call('POST', '/api/appointments', pat, { doctorId: 'doc-1', date: futureDate, time: '10:07 AM' });
 check('patient must pick an on-grid slot', r.status === 400);
