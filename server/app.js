@@ -23,11 +23,12 @@ app.use(express.json({ limit: '100kb' }));
 const STAFF = ['Admin', 'Receptionist', 'Doctor'];
 const FRONT_DESK = ['Admin', 'Receptionist'];
 
-// Allowed manual status transitions (completion with clinical notes goes through /complete)
+// Allowed manual status transitions. "Completed" is deliberately absent: a visit can only be
+// completed through POST /complete, which saves the diagnosis & prescription.
 const STATUS_TRANSITIONS = {
   Booked: ['CheckedIn', 'NoShow'],
   CheckedIn: ['InConsultation', 'NoShow', 'Booked'],
-  InConsultation: ['Completed', 'CheckedIn'],
+  InConsultation: ['CheckedIn'],
 };
 
 /** Doctors may only act on their own roster; Admin & Receptionist on any. */
@@ -567,9 +568,17 @@ app.patch('/api/appointments/:id/status', authenticateToken, requireRoles(...STA
   }
 
   const { status } = req.body;
+  if (status === 'Completed') {
+    return res.status(400).json({
+      error: 'Complete the visit from the Consultation desk so the diagnosis and prescription are saved',
+    });
+  }
   const allowed = STATUS_TRANSITIONS[apt.status] || [];
   if (!allowed.includes(status)) {
     return res.status(400).json({ error: `Cannot change status from '${apt.status}' to '${status}'` });
+  }
+  if (['CheckedIn', 'InConsultation'].includes(status) && apt.date !== todayISO()) {
+    return res.status(400).json({ error: `Patients can only be checked in on the day of their appointment (${apt.date})` });
   }
 
   if (status === 'NoShow' && apt.date > todayISO()) {
@@ -668,6 +677,9 @@ app.post('/api/appointments/:id/complete', authenticateToken, requireRoles(...ST
   }
   if (!['CheckedIn', 'InConsultation'].includes(apt.status)) {
     return res.status(400).json({ error: `Only checked-in patients can be discharged (current status: ${apt.status})` });
+  }
+  if (apt.date > todayISO()) {
+    return res.status(400).json({ error: 'A future appointment cannot be completed yet' });
   }
 
   const { chiefComplaint, diagnosis, vitals, medicines, advice, clinicalNotes } = req.body;

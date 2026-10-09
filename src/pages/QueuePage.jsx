@@ -184,13 +184,11 @@ export function QueuePage() {
             </Button>
           )}
           {row.status === 'InConsultation' && (
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => changeStatus(id, 'Completed', `Consultation completed for ${row.patientName}`)}
-            >
-              Complete
-            </Button>
+            <Link to={`/consultation?appointment=${id}`}>
+              <Button size="sm" variant="primary">
+                Diagnosis & Prescription
+              </Button>
+            </Link>
           )}
           {row.status === 'Completed' && (
             <span className="text-xs text-emerald-600 font-medium">Discharged</span>

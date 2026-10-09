@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Pill } from 'lucide-react';
 import { Modal, Button, FormField, Input, Select } from '../ui';
 import { useClinic } from '../../context/ClinicContext';
 import { formatRs } from '../../utils/currency';
@@ -13,7 +13,7 @@ const EMPTY_CHARGE = { description: '', amount: '' };
  * the receptionist can add patient-specific charges (tests, procedures, ...) and a discount.
  */
 export function CollectPaymentModal({ appointment, onClose, onPaid }) {
-  const { markAsPaid } = useClinic();
+  const { markAsPaid, pastVisits } = useClinic();
   const [extraCharges, setExtraCharges] = useState([]);
   const [discount, setDiscount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0]);
@@ -21,6 +21,19 @@ export function CollectPaymentModal({ appointment, onClose, onPaid }) {
   const [error, setError] = useState('');
 
   if (!appointment) return null;
+
+  // Prescription written during this appointment (if the doctor has completed the visit)
+  const visit = pastVisits.find((v) => v.appointmentId === appointment.id);
+  const prescribed = visit?.medicines || [];
+  const medicineLabel = (m) => [m.name, m.dosage, m.duration && `× ${m.duration}`].filter(Boolean).join(' ');
+  const medicinesAlreadyAdded = prescribed.length > 0 && prescribed.every((m) => extraCharges.some((c) => c.description === medicineLabel(m)));
+  const addPrescribedMedicines = () =>
+    setExtraCharges((prev) => [
+      ...prev,
+      ...prescribed
+        .filter((m) => !prev.some((c) => c.description === medicineLabel(m)))
+        .map((m) => ({ description: medicineLabel(m), amount: '' })),
+    ]);
 
   const basicFee = Number(appointment.fee) || 0;
   const extrasTotal = extraCharges.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
@@ -87,6 +100,46 @@ export function CollectPaymentModal({ appointment, onClose, onPaid }) {
           <span className="font-mono font-bold text-slate-900">{formatRs(basicFee)}</span>
         </div>
 
+        {/* Prescription from this visit */}
+        {visit ? (
+          <div className="p-3 rounded-xl border border-brand-200 bg-brand-50/50 text-xs space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                <Pill className="w-4 h-4 text-brand-600" />
+                Prescription • {visit.diagnosis}
+              </span>
+              {prescribed.length > 0 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={addPrescribedMedicines}
+                  disabled={isSubmitting || medicinesAlreadyAdded}
+                >
+                  {medicinesAlreadyAdded ? 'Medicines added' : 'Add medicines to bill'}
+                </Button>
+              )}
+            </div>
+            {prescribed.length > 0 ? (
+              <ul className="list-disc pl-5 text-slate-600 space-y-0.5">
+                {prescribed.map((m, i) => (
+                  <li key={i}>
+                    {medicineLabel(m)}
+                    {m.frequency ? ` (${m.frequency})` : ''}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-slate-500">No medicines prescribed.</p>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
+            No prescription has been saved for this visit yet. Medicines can be added to the bill once the doctor
+            completes the consultation.
+          </p>
+        )}
+
         {/* Patient-specific additional charges */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -103,7 +156,7 @@ export function CollectPaymentModal({ appointment, onClose, onPaid }) {
             </Button>
           </div>
           {extraCharges.length === 0 && (
-            <p className="text-xs text-slate-400">None — e.g. lab tests, ECG, dressing, injections.</p>
+            <p className="text-xs text-slate-400">None — e.g. medicines dispensed, lab tests, ECG, dressing, injections.</p>
           )}
           {extraCharges.map((charge, index) => (
             <div key={index} className="flex items-center gap-2">
