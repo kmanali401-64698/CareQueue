@@ -13,30 +13,30 @@ import {
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import { todayISO } from '../utils/date';
-import { 
-  PageHeader, 
-  Button, 
-  Card, 
-  Badge, 
-  TokenBadge, 
-  ResponsiveTable, 
-  StatCard, 
+import {
+  PageHeader,
+  Button,
+  Card,
+  Badge,
+  TokenBadge,
+  ResponsiveTable,
+  StatCard,
   EmptyState,
   Modal,
   FormField,
   Input,
-  Select 
+  Select
 } from '../components/ui';
 
 export function AppointmentsPage() {
-  const { 
-    doctors, 
-    patients, 
-    appointments, 
-    generateDoctorSlots, 
-    bookAppointment, 
+  const {
+    doctors,
+    patients,
+    appointments,
+    generateDoctorSlots,
+    bookAppointment,
     updateAppointmentStatus,
-    cancelAppointment 
+    cancelAppointment
   } = useClinic();
 
   // Persist a queue status change and report the outcome
@@ -51,7 +51,7 @@ export function AppointmentsPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('ALL');
-  
+
   // Booking Form State
   const [selectedPatientId, setSelectedPatientId] = useState(patients[0]?.id || '');
   const [selectedDoctorId, setSelectedDoctorId] = useState(doctors[0]?.id || '');
@@ -62,6 +62,12 @@ export function AppointmentsPage() {
 
   // Cancel Confirmation Modal State
   const [appointmentToCancel, setAppointmentToCancel] = useState(null);
+
+  // Doctors with consultation hours today (working day and not on leave)
+  const todayDayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()];
+  const doctorsWorkingToday = doctors.filter(
+    (d) => d.workingDays.includes(todayDayName) && !(d.leaves || []).includes(todayISO())
+  ).length;
 
   // Dynamically generate slots for currently chosen doctor & date
   const slotData = generateDoctorSlots(selectedDoctorId, selectedDate);
@@ -244,10 +250,9 @@ export function AppointmentsPage() {
   return (
     <div className="space-y-6 pb-8">
       <PageHeader
-        title="Appointments & Dynamic Slot Booking"
-        subtitle="Schedule patient visits into dynamically computed 15-minute doctor consultation slots."
+        title="Appointments"
+        subtitle="Book, check in and cancel appointments. Available times come from each doctor's schedule."
         breadcrumbs={['CareQueue', 'Front Desk', 'Appointments']}
-        badge={<Badge variant="blue">Dynamic Slots Active</Badge>}
         actions={
           <Button variant="primary" icon={Plus} onClick={handleOpenBooking}>
             Book New Appointment
@@ -258,25 +263,23 @@ export function AppointmentsPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
-          title="Scheduled Appointments"
+          title="Booked (Not Yet Arrived)"
           value={appointments.filter((a) => a.status === 'Booked').length.toString()}
           icon={Calendar}
           iconColor="blue"
-          badgeText="Active"
         />
         <StatCard
-          title="Total Booked Slots"
+          title="All Appointments"
           value={appointments.length.toString()}
           icon={Clock}
           iconColor="teal"
-          trend={{ value: '15 min duration', isPositive: true }}
         />
         <StatCard
-          title="Active Doctors"
+          title="Doctors"
           value={doctors.length.toString()}
           icon={Stethoscope}
           iconColor="emerald"
-          subtitle="Mon–Sat, Mon–Fri, Tue–Sat schedules"
+          subtitle={`${doctorsWorkingToday} working today`}
         />
       </div>
 
@@ -445,7 +448,7 @@ export function AppointmentsPage() {
                     Generated from {slotData.workingHours} ({slotData.slotDuration} min duration)
                   </span>
                   {selectedSlotTime && (
-                    <span className="font-semibold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200">
+                    <span className="font-semibold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-md border border-brand-200">
                       Selected: {selectedSlotTime}
                     </span>
                   )}

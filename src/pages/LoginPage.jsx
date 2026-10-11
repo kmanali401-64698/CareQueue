@@ -10,6 +10,7 @@ import {
   Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { CLINIC } from '../config/clinic';
 import { Button, FormField, Input } from '../components/ui';
 
 // Demo logins are shown in development, or in a build made with VITE_SHOW_DEMO_ACCOUNTS=true (e.g. a public demo)
@@ -21,7 +22,7 @@ const DEMO_ACCOUNTS = [
     label: 'Clinic Admin',
     email: 'admin@carequeue.org',
     password: 'admin123',
-    badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
+    badgeColor: 'bg-slate-100 text-slate-800 border-slate-200',
     icon: ShieldCheck,
     desc: 'Staff creation & system oversight',
   },
@@ -110,11 +111,11 @@ export function LoginPage() {
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-600 text-white shadow-soft-md shadow-brand-500/20 mb-2">
           <HeartPulse className="w-8 h-8" />
         </div>
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-          CareQueue Medical
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+          Sign in to {CLINIC.name}
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 font-medium">
-          Sign in to access your clinic role workspace & clinical records
+          Use the email address and password for your account.
         </p>
       </div>
 
@@ -128,7 +129,7 @@ export function LoginPage() {
                   id="login-email"
                   type="email"
                   autoComplete="email"
-                  placeholder="name@carequeue.org"
+                  placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
@@ -175,7 +176,6 @@ export function LoginPage() {
             <div className="grid grid-cols-2 gap-2">
               {DEMO_ACCOUNTS.map((demo) => {
                 const Icon = demo.icon;
-                const isLoggingIn = isLoading && activeDemoRole === demo.role;
 
                 return (
                   <button
@@ -190,9 +190,6 @@ export function LoginPage() {
                         <Icon className="w-3.5 h-3.5 text-brand-600" />
                         {demo.role}
                       </span>
-                      {isLoggingIn && (
-                        <span className="w-2 h-2 rounded-full bg-brand-600 animate-ping"></span>
-                      )}
                     </div>
                     <span className="text-[10px] text-slate-400 block truncate">
                       {demo.email}
@@ -215,8 +212,12 @@ export function LoginPage() {
                 Create your patient account
               </Link>
             </p>
-            <p className="text-[11px] text-slate-400 mt-1 italic">
-              (Staff accounts are managed by Administrator)
+            <p className="text-[11px] text-slate-400 mt-1">
+              Staff accounts are created by the clinic administrator.
+            </p>
+            <p className="text-[11px] text-slate-400 mt-3 flex justify-center gap-3">
+              <Link to="/privacy" className="hover:text-slate-700 hover:underline">Privacy Policy</Link>
+              <Link to="/terms" className="hover:text-slate-700 hover:underline">Terms and Conditions</Link>
             </p>
           </div>
         </div>

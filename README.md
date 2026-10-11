@@ -1,4 +1,4 @@
-# CareQueue — Clinic Management & Patient Flow
+# CareQueue: Clinic Management & Patient Flow
 
 A clinic management system for OPD clinics: appointment booking with dynamic time slots, a live patient queue with tokens, a doctor consultation desk with e-prescriptions, billing with printable receipts, and a waiting-room TV display.
 
@@ -61,6 +61,22 @@ Access is enforced on the server (every API route checks the JWT role); the fron
 - **Billing:** each doctor has a **basic consultation fee** (e.g. Rs. 600 / 1,000 / 1,200; the Admin sets it when creating the doctor and can change it later under Doctor Rosters). At payment the receptionist can add patient-specific charges (tests, procedures) and a discount; the receipt shows the breakdown and revenue reports count the amount actually collected. Amounts are in Indian Rupees.
 - **Waiting-room TV** (`/display`): public, refreshes every 5 seconds, shows tokens with masked names (e.g. "Emma W.").
 
+## Clinic details
+
+Edit `src/config/clinic.js` with the clinic's real name, address, phone, email, registration number and (if registered) GSTIN. These are printed on prescriptions and receipts and shown on the Privacy Policy and Terms pages. Empty fields are hidden, so no placeholder details are ever printed.
+
+## Launch checklist
+
+Do not go live until every item is done:
+
+- [ ] Clinic details filled in (`src/config/clinic.js`), including the legal name, grievance officer and jurisdiction used by the legal pages
+- [ ] Privacy Policy (`/privacy`) and Terms and Conditions (`/terms`) reviewed by someone qualified for your jurisdiction
+- [ ] Custom domain connected, served over HTTPS
+- [ ] `JWT_SECRET` set to a long random value on the server
+- [ ] Demo accounts removed or their passwords changed (`npm run seed` creates them)
+- [ ] Favicon: `public/favicon.svg` (replace it if the clinic has its own logo)
+- [ ] Backups of `server/data/db.json` scheduled
+
 ## Scripts
 
 | Command          | Description                                        |
@@ -87,10 +103,11 @@ src/
   components/ui/      Shared UI kit (Button, Modal, FormField, …)
   components/clinical/ Prescription, receipt, payment modal
   utils/              Date & currency (Rs.) formatting
+  config/clinic.js    Clinic name, address and legal details (fill in before launch)
 tests/api.test.mjs    API integration tests
 ```
 
 ## Notes & limitations
 
 - Storage is a single JSON file, suitable for a single clinic / single server. For multi-user production scale, move to a real database (e.g. PostgreSQL or SQLite).
-- Back up `server/data/db.json` — it holds all patient records.
+- Back up `server/data/db.json`. It holds all patient records.

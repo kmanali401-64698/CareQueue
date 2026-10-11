@@ -13,18 +13,18 @@ import {
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import { todayISO } from '../utils/date';
-import { 
-  Button, 
-  Card, 
-  Badge, 
-  TokenBadge, 
-  StatCard, 
-  PageHeader, 
-  EmptyState, 
-  Modal, 
-  FormField,  
-  Select, 
-  ResponsiveTable 
+import {
+  Button,
+  Card,
+  Badge,
+  TokenBadge,
+  StatCard,
+  PageHeader,
+  EmptyState,
+  Modal,
+  FormField,
+  Select,
+  ResponsiveTable
 } from '../components/ui';
 
 export function QueuePage() {
@@ -68,9 +68,7 @@ export function QueuePage() {
 
   // Action: Call Next Token
   const handleCallNext = (token, patient) => {
-    toast.success(`Calling Token ${token} (${patient}) to Consulting Room`, {
-      icon: '📢',
-    });
+    toast.success(`Calling token ${token} (${patient}) to the consulting room`);
   };
 
   // Action: Reload queue from the server
@@ -221,10 +219,9 @@ export function QueuePage() {
     <div className="space-y-6 pb-8">
       {/* Page Header */}
       <PageHeader
-        title="Live Patient Queue & Clinic Flow"
-        subtitle="Real-time waiting line, token allocation, doctor OPD tracking, and consultation status."
-        breadcrumbs={['CareQueue', 'Front Desk', 'Active Queue']}
-        badge={<Badge variant="teal">OPD Active</Badge>}
+        title="Today's Queue"
+        subtitle="Check patients in, send them to the doctor and record no-shows."
+        breadcrumbs={['CareQueue', 'Front Desk', 'Queue']}
         actions={
           <>
             <Button
@@ -253,14 +250,13 @@ export function QueuePage() {
           value={todaysQueue.filter((q) => q.status === 'CheckedIn').length.toString()}
           icon={Clock}
           iconColor="amber"
-          badgeText="Active Waiting"
         />
         <StatCard
           title="In Consultation"
           value={todaysQueue.filter((q) => q.status === 'InConsultation').length.toString()}
           icon={Stethoscope}
-          iconColor="purple"
-          subtitle="Doctors active in OPDs"
+          iconColor="blue"
+          subtitle="With a doctor right now"
         />
         <StatCard
           title="Completed Today"
@@ -271,10 +267,10 @@ export function QueuePage() {
         />
         <StatCard
           title="Avg Wait Time"
-          value={avgWaitMinutes === null ? '—' : `${avgWaitMinutes} min`}
+          value={avgWaitMinutes === null ? '0 min' : `${avgWaitMinutes} min`}
           icon={Users}
           iconColor="teal"
-          subtitle="Current wait of checked-in patients"
+          subtitle={avgWaitMinutes === null ? 'No one is waiting' : 'Average for patients now waiting'}
         />
       </div>
 

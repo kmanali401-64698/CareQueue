@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -15,10 +15,15 @@ import { DoctorsPage } from './pages/DoctorsPage';
 import { PatientsPage } from './pages/PatientsPage';
 import { ConsultationPage } from './pages/ConsultationPage';
 import { WaitingRoomDisplayPage } from './pages/WaitingRoomDisplayPage';
-import { DesignSystemPage } from './pages/DesignSystemPage';
+import { PrivacyPolicyPage, TermsPage } from './pages/LegalPages';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
 
 const STAFF_ROLES = ['Admin', 'Receptionist', 'Doctor'];
+
+// Internal UI reference page: available while developing only, never in a production build
+const DesignSystemPage = import.meta.env.DEV
+  ? lazy(() => import('./pages/DesignSystemPage').then((m) => ({ default: m.DesignSystemPage })))
+  : null;
 
 /**
  * Protected Route wrapper that verifies authentication & allowed roles
@@ -96,6 +101,8 @@ export function App() {
             {/* Public Auth Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
 
             {/* Full-Screen Waiting Room TV Display (No sidebar) */}
             <Route path="/display" element={<WaitingRoomDisplayPage />} />
@@ -186,7 +193,16 @@ export function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="design-system" element={<DesignSystemPage />} />
+              {DesignSystemPage && (
+                <Route
+                  path="design-system"
+                  element={
+                    <Suspense fallback={null}>
+                      <DesignSystemPage />
+                    </Suspense>
+                  }
+                />
+              )}
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />

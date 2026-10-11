@@ -156,7 +156,7 @@ export function CollectPaymentModal({ appointment, onClose, onPaid }) {
             </Button>
           </div>
           {extraCharges.length === 0 && (
-            <p className="text-xs text-slate-400">None — e.g. medicines dispensed, lab tests, ECG, dressing, injections.</p>
+            <p className="text-xs text-slate-400">None added. For example: medicines dispensed, lab tests, ECG, dressing, injections.</p>
           )}
           {extraCharges.map((charge, index) => (
             <div key={index} className="flex items-center gap-2">

@@ -104,7 +104,7 @@ export function AdminPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to create staff account');
 
       toast.success(`${form.role} account for ${form.name} created successfully!`);
-      
+
       // If doctor, also update in local context
       if (data.doctor) {
         setDoctors((prev) => [...prev, data.doctor]);
@@ -136,8 +136,8 @@ export function AdminPage() {
       header: 'Role Assignment',
       accessor: 'role',
       render: (role) => (
-        <Badge 
-          variant={role === 'Admin' ? 'purple' : role === 'Doctor' ? 'blue' : 'teal'}
+        <Badge
+          variant={role === 'Admin' ? 'grey' : role === 'Doctor' ? 'blue' : 'teal'}
         >
           {role}
         </Badge>
@@ -172,23 +172,20 @@ export function AdminPage() {
   return (
     <div className="space-y-8 pb-12">
       <PageHeader
-        title="Staff Account Administration"
-        subtitle="Create and manage Doctor and Receptionist credentials. Staff accounts are provisioned exclusively by administrators."
+        title="Staff Accounts"
+        subtitle="Create logins for doctors, receptionists and administrators."
         breadcrumbs={['CareQueue', 'System Administration', 'Staff Accounts']}
-        badge={<Badge variant="purple">Admin Security Console</Badge>}
       />
 
       {/* Security Banner */}
-      <div className="bg-purple-50/70 border border-purple-200 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 shadow-soft">
-        <div className="p-2 bg-purple-600 text-white rounded-xl shrink-0 mt-0.5 shadow-soft-xs">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5">
+        <div className="p-2 bg-slate-100 text-slate-700 rounded-xl shrink-0 mt-0.5">
           <ShieldCheck className="w-5 h-5" />
         </div>
-        <div className="text-xs sm:text-sm text-purple-950 space-y-1">
-          <p className="font-bold text-purple-900">
-            Strict Staff Provisioning Policy
-          </p>
-          <p className="text-purple-800/90 leading-relaxed">
-            Public registration is strictly limited to <strong>Patients</strong>. All Doctors, Receptionists, and Clinic Administrators must be provisioned through this portal. Passwords are encrypted with bcrypt and verified on all protected API routes using JWT bearer tokens.
+        <div className="text-xs sm:text-sm text-slate-700 space-y-1">
+          <p className="font-semibold text-slate-900">Who can create accounts</p>
+          <p className="leading-relaxed">
+            Patients sign up themselves. Doctor, receptionist and administrator accounts can only be created on this page, by an administrator.
           </p>
         </div>
       </div>
@@ -233,7 +230,7 @@ export function AdminPage() {
                 <Input
                   id="staff-email"
                   type="email"
-                  placeholder="staff@carequeue.org"
+                  placeholder="name@example.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   error={errors.email}

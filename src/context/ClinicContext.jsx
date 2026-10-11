@@ -94,7 +94,7 @@ export function ClinicProvider({ children }) {
     setDoctors((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
 
   /**
-   * Dynamic Slot Generation Engine.
+   * Generates bookable time slots for a doctor on a date.
    * `extraBookedTimes` marks slots taken by appointments the caller can't see (e.g. other patients').
    */
   const generateDoctorSlots = (doctorId, targetDateString, extraBookedTimes = []) => {
@@ -265,7 +265,7 @@ export function ClinicProvider({ children }) {
   };
 
   /**
-   * Record payment and receive the official receipt.
+   * Record payment and receive the receipt.
    * options: { paymentMethod, extraCharges: [{ description, amount }], discount }
    */
   const markAsPaid = async (appointmentId, { paymentMethod = 'Cash', extraCharges = [], discount = 0 } = {}) => {

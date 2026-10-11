@@ -29,11 +29,11 @@ import { CollectPaymentModal } from '../components/clinical/CollectPaymentModal'
 import { formatRs } from '../utils/currency';
 
 export function DashboardPage() {
-  const { 
-    doctors, 
-    appointments, 
-    receipts, 
-    getTodayStats, 
+  const {
+    doctors,
+    appointments,
+    receipts,
+    getTodayStats,
     getDoctorQueueData
   } = useClinic();
 
@@ -109,7 +109,7 @@ export function DashboardPage() {
       render: (id) => {
         const qData = getDoctorQueueData(id);
         return (
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
             <Clock className="w-3.5 h-3.5 text-amber-600" />
             {qData.waitingCount} Waiting
           </span>
@@ -122,7 +122,7 @@ export function DashboardPage() {
       render: (id) => {
         const qData = getDoctorQueueData(id);
         return (
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             {qData.completedCount} Done
           </span>
@@ -187,7 +187,7 @@ export function DashboardPage() {
       render: () => <Badge status="Paid" size="sm" />,
     },
     {
-      header: 'Official Receipt',
+      header: 'Receipt',
       accessor: 'receiptNumber',
       align: 'right',
       render: (_, row) => (
@@ -207,15 +207,14 @@ export function DashboardPage() {
     <div className="space-y-8 pb-12">
       {/* Page Header */}
       <PageHeader
-        title="Receptionist Operations Dashboard"
-        subtitle="Live clinic waiting line, doctor station rosters, revenue collection, and official receipt printing."
+        title="Front Desk"
+        subtitle="Today's appointments, doctor queues and payments."
         breadcrumbs={['CareQueue', 'Front Desk', 'Dashboard']}
-        badge={<Badge variant="teal">Clinic Open • OPD Active</Badge>}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Link to="/display" target="_blank" rel="noopener noreferrer">
               <Button variant="primary" icon={MonitorPlay}>
-                Launch TV Waiting Room Display
+                Open TV Display
               </Button>
             </Link>
             <Button
@@ -236,7 +235,7 @@ export function DashboardPage() {
       />
 
 
-      {/* 5 MANDATORY KPI STAT CARDS */}
+      {/* Today's figures */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* 1. Today's Appointments */}
         <StatCard
@@ -289,7 +288,7 @@ export function DashboardPage() {
         />
       </div>
 
-      {/* MANDATORY TABLE: Each Doctor's Queue Status */}
+      {/* Each doctor's queue */}
       <Card padding="none">
         <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -331,7 +330,7 @@ export function DashboardPage() {
             </div>
 
             <p className="text-xs text-slate-500">
-              Collect consultation fees at front desk to issue official tax invoice receipts.
+              Collect payment for completed or waiting visits and print a receipt.
             </p>
 
             <div className="space-y-3 pt-2">
@@ -367,7 +366,7 @@ export function DashboardPage() {
           </Card>
         </div>
 
-        {/* Today's Official Settled Receipts (7 cols) */}
+        {/* Receipts issued (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
           <Card padding="none">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
@@ -377,7 +376,7 @@ export function DashboardPage() {
                   Recent Settled Receipts & Invoices
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Print official clinic receipts sharing the exact same header as medical prescriptions.
+                  Reprint any receipt issued at the front desk.
                 </p>
               </div>
 

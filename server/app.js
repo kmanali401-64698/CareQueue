@@ -135,16 +135,17 @@ function generateToken(user) {
  */
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { 
-      name, 
-      email, 
-      password, 
-      phone, 
-      age, 
-      gender, 
-      bloodGroup, 
-      allergies, 
-      emergencyContact 
+    const {
+      name,
+      email,
+      password,
+      phone,
+      age,
+      gender,
+      bloodGroup,
+      allergies,
+      emergencyContact,
+      acceptedTerms
     } = req.body;
 
     if (!name || !String(name).trim() || !email || !password) {
@@ -157,6 +158,9 @@ app.post('/api/auth/signup', async (req, res) => {
     }
     if (String(password).length < MIN_PASSWORD_LENGTH) {
       return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+    }
+    if (acceptedTerms !== true) {
+      return res.status(400).json({ error: 'Please accept the Terms and Privacy Policy to create an account' });
     }
 
     // Check if user already exists
@@ -197,6 +201,7 @@ app.post('/api/auth/signup', async (req, res) => {
       role: 'Patient', // Strict: public signup is Patient only
       doctorId: null,
       patientId: patientId,
+      termsAcceptedAt: new Date().toISOString(),
       createdAt: todayISO(),
     };
     db.addUser(newUser);

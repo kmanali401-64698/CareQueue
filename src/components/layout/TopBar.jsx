@@ -25,7 +25,7 @@ export function TopBar({ onToggleSidebar }) {
 
   const getRoleBadgeVariant = (role) => {
     switch (role) {
-      case 'Admin': return 'purple';
+      case 'Admin': return 'grey';
       case 'Doctor': return 'blue';
       case 'Patient': return 'green';
       case 'Receptionist':
@@ -55,7 +55,7 @@ export function TopBar({ onToggleSidebar }) {
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-100/80 px-3 py-1.5 rounded-full border border-slate-200/60">
+        <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-100/80 px-3 py-1.5 rounded-lg border border-slate-200/60">
           <Calendar className="w-3.5 h-3.5 text-brand-600" />
           <span>Today: {todayFormatted}</span>
         </div>
@@ -64,11 +64,10 @@ export function TopBar({ onToggleSidebar }) {
           href="/display"
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-100 transition-colors shadow-soft-xs"
-          title="Launch Full-Screen TV Waiting Room Display (No Sidebar)"
+          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition-colors"
+          title="Open the waiting-room TV screen in a new tab"
         >
-          <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
-          <span>TV Display</span>
+          <span>Open TV display</span>
         </a>
       </div>
 

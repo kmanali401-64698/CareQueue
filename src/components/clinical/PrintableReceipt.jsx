@@ -1,10 +1,10 @@
 import React from 'react';
 import {
   Printer,
-  HeartPulse,
   CheckCircle2
 } from 'lucide-react';
 import { Button } from '../ui';
+import { ClinicLetterhead } from './ClinicLetterhead';
 import { formatRs } from '../../utils/currency';
 
 export function PrintableReceipt({ receipt, onClose }) {
@@ -14,7 +14,7 @@ export function PrintableReceipt({ receipt, onClose }) {
     window.print();
   };
 
-  // Missing fields render blank — never another patient's details
+  // Missing fields render blank, never another patient's details
   const {
     receiptNumber = '',
     date = '',
@@ -43,7 +43,7 @@ export function PrintableReceipt({ receipt, onClose }) {
           <div className="flex items-center gap-2">
             <Printer className="w-4 h-4 text-emerald-400" />
             <span className="font-semibold text-xs sm:text-sm tracking-wide">
-              Official Medical Payment Receipt
+              Receipt preview
             </span>
           </div>
 
@@ -69,43 +69,12 @@ export function PrintableReceipt({ receipt, onClose }) {
 
         {/* Printable Receipt Document Area */}
         <div className="printable-sheet p-6 sm:p-10 space-y-6 bg-white text-slate-900 font-sans text-xs sm:text-sm">
-          {/* Clinic Official Header (IDENTICAL TO PRESCRIPTION) */}
-          <div className="border-b-2 border-brand-600 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold shadow-soft">
-                <HeartPulse className="w-7 h-7" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black text-brand-900 tracking-tight uppercase">
-                  CareQueue Medical Center
-                </h1>
-                <p className="text-xs text-brand-700 font-semibold tracking-wider uppercase">
-                  Department of Outpatient Clinical Care & Specialist OPD
-                </p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  100 Health Sciences Blvd, Suite 400 • Medical District • Tel: (555) 019-CARE
-                </p>
-              </div>
-            </div>
-
-            <div className="text-right sm:border-l sm:pl-4 border-slate-200 text-xs">
-              <span className="font-mono font-bold text-brand-800 block text-sm">
-                Reg: CL-2026-8891
-              </span>
-              <span className="text-slate-500 block text-[11px]">Accredited Healthcare Facility</span>
-              <span className="text-slate-400 block text-[10px]">Tax ID: US-EIN-9481023</span>
-            </div>
-          </div>
+          <ClinicLetterhead />
 
           {/* Receipt Title & Meta Banner */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 border border-slate-200 p-4 rounded-xl">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Official Document
-              </span>
-              <h2 className="text-base sm:text-lg font-black text-slate-900">
-                MEDICAL CONSULTATION RECEIPT & TAX INVOICE
-              </h2>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">Payment Receipt</h2>
             </div>
 
             <div className="text-right">
@@ -174,10 +143,6 @@ export function PrintableReceipt({ receipt, onClose }) {
                     <span className="font-mono font-medium">- {formatRs(discount, 2)}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Healthcare Tax / GST:</span>
-                  <span className="font-mono font-medium text-emerald-600">Rs. 0.00 (Exempt)</span>
-                </div>
                 <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-slate-900 font-bold text-sm">
                   <span>Total Paid:</span>
                   <span className="font-mono text-base text-brand-900">{formatRs(total, 2)}</span>
@@ -186,7 +151,7 @@ export function PrintableReceipt({ receipt, onClose }) {
             </div>
           </div>
 
-          {/* Payment Status & Official Stamp */}
+          {/* Payment status and stamp */}
           <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-emerald-600 text-white rounded-lg">
@@ -199,23 +164,16 @@ export function PrintableReceipt({ receipt, onClose }) {
               </div>
             </div>
 
-            {/* Official PAID Stamp */}
-            <div className="border-2 border-dashed border-emerald-600 px-4 py-1.5 rounded-lg text-center transform -rotate-2">
-              <span className="font-black text-emerald-700 text-base tracking-widest uppercase">
-                PAID & SETTLED
-              </span>
-              <span className="text-[9px] text-emerald-600 block uppercase font-mono">
-                CareQueue Accounts
-              </span>
+            {/* PAID stamp */}
+            <div className="border-2 border-emerald-600 px-4 py-1.5 rounded-lg text-center">
+              <span className="font-bold text-emerald-700 text-base tracking-widest uppercase">Paid</span>
             </div>
           </div>
 
           {/* Receipt Footer */}
           <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row sm:items-end justify-between gap-4 text-xs">
             <div className="text-slate-500 text-[11px] space-y-0.5">
-              <p className="font-semibold text-slate-700">Terms & Policy:</p>
-              <p>Receipt issued for clinical medical services rendered. Retain for insurance reimbursement.</p>
-              <p className="text-[10px] text-slate-400">Printed via CareQueue Cloud Health Management</p>
+              <p>Receipt for medical services provided at the clinic. Keep it for insurance claims.</p>
             </div>
 
             <div className="text-center min-w-[180px] space-y-1">

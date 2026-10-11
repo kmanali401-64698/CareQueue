@@ -12,18 +12,18 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useClinic } from '../context/ClinicContext';
 import { todayISO } from '../utils/date';
-import { 
-  PageHeader, 
-  Button, 
-  Card, 
-  Badge, 
-  TokenBadge, 
-  ResponsiveTable, 
-  Modal, 
-  FormField, 
-  Input, 
-  Select, 
-  EmptyState 
+import {
+  PageHeader,
+  Button,
+  Card,
+  Badge,
+  TokenBadge,
+  ResponsiveTable,
+  Modal,
+  FormField,
+  Input,
+  Select,
+  EmptyState
 } from '../components/ui';
 import { PrintablePrescription } from '../components/clinical/PrintablePrescription';
 import { PrintableReceipt } from '../components/clinical/PrintableReceipt';
@@ -31,29 +31,29 @@ import { formatRs } from '../utils/currency';
 
 export function PatientPortalPage() {
   const { user } = useAuth();
-  const { 
-    patients, 
-    doctors, 
-    appointments, 
-    pastVisits, 
-    receipts, 
-    bookAppointment, 
+  const {
+    patients,
+    doctors,
+    appointments,
+    pastVisits,
+    receipts,
+    bookAppointment,
     cancelAppointment,
     generateDoctorSlots,
     fetchBookedSlots,
     updatePatient
   } = useClinic();
 
-  // Fallback while the profile loads (or for an Admin previewing the portal) — never show another patient's data
+  // Fallback while the profile loads; never show another patient's data
   const currentPatient = patients.find((p) => p.id === user?.patientId) || {
     id: user?.patientId || null,
     name: user?.name || 'Patient',
-    bloodGroup: '—',
+    bloodGroup: 'Unknown',
     allergies: 'Not recorded',
-    phone: '—',
-    email: user?.email || '—',
-    gender: '—',
-    age: '—',
+    phone: '',
+    email: user?.email || '',
+    gender: '',
+    age: '',
   };
 
   // Scoped Data: Patient only sees their own appointments, past visits, and receipts!
@@ -74,7 +74,7 @@ export function PatientPortalPage() {
 
   const openDetails = () =>
     setDetailsForm({
-      phone: currentPatient.phone === '—' ? '' : currentPatient.phone || '',
+      phone: currentPatient.phone || '',
       emergencyContact: currentPatient.emergencyContact === 'Not specified' ? '' : currentPatient.emergencyContact || '',
       allergies: currentPatient.allergies === 'None known' ? '' : currentPatient.allergies || '',
     });
@@ -227,10 +227,9 @@ export function PatientPortalPage() {
     <div className="space-y-8 pb-12">
       {/* Page Header */}
       <PageHeader
-        title="Personal Patient Health Portal"
-        subtitle="Manage your personal doctor appointments, electronic prescriptions, and official medical receipts."
+        title="My Appointments & Records"
+        subtitle="Book appointments and view your prescriptions and receipts."
         breadcrumbs={['CareQueue', 'Patient Portal']}
-        badge={<Badge variant="teal">Verified Patient Account</Badge>}
         actions={
           <Button
             variant="primary"
@@ -243,7 +242,7 @@ export function PatientPortalPage() {
       />
 
       {/* Patient Demographic Card */}
-      <div className="bg-gradient-to-r from-teal-50/80 via-white to-slate-50 border border-teal-200/90 rounded-2xl p-5 shadow-soft">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-soft">
         <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-teal-100">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-brand-600 text-white font-black text-lg flex items-center justify-center shadow-soft">
@@ -252,7 +251,7 @@ export function PatientPortalPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-slate-900">{currentPatient.name}</h2>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800">
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-teal-100 text-teal-800">
                   {currentPatient.bloodGroup}
                 </span>
               </div>
@@ -290,7 +289,7 @@ export function PatientPortalPage() {
               My Scheduled Appointments
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Active consultations and dynamic slot bookings. Cancel is permitted before check-in.
+              You can cancel an appointment until you have been checked in at the clinic.
             </p>
           </div>
 
@@ -395,11 +394,11 @@ export function PatientPortalPage() {
               My Billing Statements & Tax Receipts
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Official medical receipts with clinic tax invoice header for insurance claims.
+              Receipts for payments made at the clinic. Keep them for insurance claims.
             </p>
           </div>
 
-          <Badge variant="teal">{myReceipts.length} Official Invoices</Badge>
+          <Badge variant="teal">{myReceipts.length} {myReceipts.length === 1 ? 'Receipt' : 'Receipts'}</Badge>
         </div>
 
         {myReceipts.length === 0 ? (
@@ -446,7 +445,7 @@ export function PatientPortalPage() {
         isOpen={isBookModalOpen}
         onClose={() => !isSubmittingBooking && setIsBookModalOpen(false)}
         title="Schedule Doctor Consultation"
-        description="Select doctor and appointment date. Real-time 15-minute consultation slots will be generated."
+        description="Choose a doctor and a date to see the available times."
         maxWidth="max-w-xl"
         footer={
           <>

@@ -36,7 +36,7 @@ export function WaitingRoomDisplayPage() {
     return () => clearInterval(clockTimer);
   }, []);
 
-  // 5-Second Auto-Refresh Engine
+  // Refresh every 5 seconds
   useEffect(() => {
     const refreshTimer = setInterval(() => {
       setSecondsLeft((prev) => {
@@ -104,7 +104,7 @@ export function WaitingRoomDisplayPage() {
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white uppercase">
                 CareQueue Medical Center
               </h1>
-              <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/30">
+              <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-md bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/30">
                 LIVE OPD BOARD
               </span>
             </div>
@@ -129,10 +129,10 @@ export function WaitingRoomDisplayPage() {
           {/* Controls Bar */}
           <div className="flex items-center gap-2 pl-4 border-l border-slate-800">
             {/* Auto-Refresh Badge */}
-            <div 
+            <div
               className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                refreshPulse 
-                  ? 'bg-teal-500/30 border-teal-400 text-teal-200 ring-2 ring-teal-400/40' 
+                refreshPulse
+                  ? 'bg-teal-500/30 border-teal-400 text-teal-200 ring-2 ring-teal-400/40'
                   : 'bg-slate-800/80 border-slate-700 text-slate-300'
               }`}
             >
@@ -191,13 +191,13 @@ export function WaitingRoomDisplayPage() {
                   ? 'bg-slate-900/60 border-rose-900/40 opacity-75'
                   : !isWorkingDay
                   ? 'bg-slate-900/60 border-slate-800 opacity-75'
-                  : 'bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800/90 hover:border-teal-500/50'
+                  : 'bg-slate-900 border-slate-800/90'
               }`}
             >
               {/* Doctor Station Header */}
               <div className="p-5 sm:p-6 border-b border-slate-800 bg-slate-900/40 flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-700 text-white font-black text-lg flex items-center justify-center shadow-lg shadow-teal-500/20">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-600 text-white font-black text-lg flex items-center justify-center shadow-lg shadow-teal-500/20">
                     {doctor.avatar}
                   </div>
                   <div>
@@ -225,7 +225,7 @@ export function WaitingRoomDisplayPage() {
                       </span>
                     ) : nowServing ? (
                       <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
                         Active
                       </span>
                     ) : (
@@ -243,7 +243,7 @@ export function WaitingRoomDisplayPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+                      <span className="w-2 h-2 rounded-full bg-teal-400"></span>
                       Now Serving
                     </span>
                     <span className="text-xs font-semibold text-slate-400">
@@ -258,7 +258,7 @@ export function WaitingRoomDisplayPage() {
                       <p className="text-xs text-rose-400/80">No active consultation slots today.</p>
                     </div>
                   ) : nowServing ? (
-                    <div className="rounded-2xl bg-gradient-to-br from-teal-950/60 to-slate-900 border-2 border-teal-500/70 p-6 text-center space-y-2.5 shadow-xl shadow-teal-950/50">
+                    <div className="rounded-2xl bg-slate-900 border-2 border-teal-500/70 p-6 text-center space-y-2.5 shadow-xl shadow-teal-950/50">
                       <span className="text-xs uppercase font-bold text-teal-400 tracking-widest">
                         Queue Ticket
                       </span>
@@ -270,7 +270,7 @@ export function WaitingRoomDisplayPage() {
                         {maskName(nowServing.patientName)}
                       </div>
                       <div className="pt-2">
-                        <span className="inline-block px-3 py-1 rounded-full bg-teal-500 text-slate-950 text-xs font-black uppercase tracking-wider">
+                        <span className="inline-block px-3 py-1 rounded-md bg-teal-500 text-slate-950 text-xs font-black uppercase tracking-wider">
                           Proceed to {doctor.room}
                         </span>
                       </div>
@@ -290,7 +290,7 @@ export function WaitingRoomDisplayPage() {
                     <span className="text-xs font-black uppercase tracking-widest text-slate-400">
                       Next in Line (Next 3)
                     </span>
-                    <span className="text-xs font-bold text-teal-400 bg-teal-950/60 border border-teal-800/60 px-2.5 py-0.5 rounded-full">
+                    <span className="text-xs font-bold text-teal-400 bg-teal-950/60 border border-teal-800/60 px-2.5 py-0.5 rounded-md">
                       {waitingCount} Waiting
                     </span>
                   </div>
@@ -350,16 +350,14 @@ export function WaitingRoomDisplayPage() {
       {/* Bottom Ticker Notification Bar */}
       <footer className="px-6 py-3 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
         <div className="flex items-center gap-3">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
           <span className="font-bold text-slate-200">Patient Notice:</span>
           <span>
-            Please approach your respective consulting room as soon as your token is displayed. Have your ID and medical records ready.
+            When your token appears, please go to the room shown. Keep your ID and any reports with you.
           </span>
         </div>
         <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] text-slate-500">
-          <span>Auto-refreshes every 5s</span>
-          <span>•</span>
-          <span>CareQueue Kiosk Engine v1.0</span>
+          <span>Updates every 5 seconds</span>
         </div>
       </footer>
     </div>

@@ -195,6 +195,8 @@ r = await call('POST', '/api/auth/signup', null, { name: 'X', email: 'x@example.
 check('signup rejects short password', r.status === 400);
 const walkin = (await call('POST', '/api/patients', rec, { name: 'Linked Walkin', age: 33, phone: '+91 90000 00000', email: 'linked@example.com', bloodGroup: 'B-' })).data.patient;
 r = await call('POST', '/api/auth/signup', null, { name: 'Linked Walkin', email: 'linked@example.com', password: 'secret1' });
+check('signup requires accepting the terms', r.status === 400);
+r = await call('POST', '/api/auth/signup', null, { name: 'Linked Walkin', email: 'linked@example.com', password: 'secret1', acceptedTerms: true });
 check('signup links existing patient record', r.status === 201 && r.data.user.patientId === walkin.id && r.data.patient.bloodGroup === 'B-', JSON.stringify(r.data).slice(0, 200));
 
 // Editing patient details

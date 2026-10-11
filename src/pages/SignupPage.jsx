@@ -19,6 +19,7 @@ export function SignupPage() {
     bloodGroup: 'Unknown',
     allergies: '',
     emergencyContact: '',
+    acceptedTerms: false,
   });
 
   const [errors, setErrors] = useState({});
@@ -32,6 +33,7 @@ export function SignupPage() {
     if (!form.phone.trim()) errs.phone = 'Phone number is required';
     if (!form.age || isNaN(form.age) || Number(form.age) <= 0 || Number(form.age) > 125) errs.age = 'Valid age is required';
     if (!form.gender) errs.gender = 'Please select a gender';
+    if (!form.acceptedTerms) errs.acceptedTerms = 'Please accept the Terms and Privacy Policy to continue';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -52,6 +54,7 @@ export function SignupPage() {
         bloodGroup: form.bloodGroup,
         allergies: form.allergies.trim() || 'None known',
         emergencyContact: form.emergencyContact.trim() || 'Not specified',
+        acceptedTerms: form.acceptedTerms,
       });
 
       toast.success('Patient account created successfully!');
@@ -121,7 +124,7 @@ export function SignupPage() {
               <FormField label="Phone" id="reg-phone" required error={errors.phone}>
                 <Input
                   id="reg-phone"
-                  placeholder="+1 555-0100"
+                  placeholder="+91 98765 43210"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   error={errors.phone}
@@ -200,14 +203,39 @@ export function SignupPage() {
               />
             </FormField>
 
+            <div className="space-y-1">
+              <label htmlFor="reg-consent" className="flex items-start gap-2 text-xs text-slate-600">
+                <input
+                  id="reg-consent"
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  checked={form.acceptedTerms}
+                  onChange={(e) => setForm({ ...form, acceptedTerms: e.target.checked })}
+                  disabled={isLoading}
+                />
+                <span>
+                  I agree to the{' '}
+                  <Link to="/terms" target="_blank" className="font-semibold text-brand-700 hover:underline">
+                    Terms and Conditions
+                  </Link>{' '}
+                  and consent to the clinic using my health information as described in the{' '}
+                  <Link to="/privacy" target="_blank" className="font-semibold text-brand-700 hover:underline">
+                    Privacy Policy
+                  </Link>
+                  .
+                </span>
+              </label>
+              {errors.acceptedTerms && <p className="text-xs text-rose-600 font-medium">{errors.acceptedTerms}</p>}
+            </div>
+
             <Button
               type="submit"
               variant="primary"
-              className="w-full justify-center py-2.5 text-sm font-bold shadow-soft"
+              className="w-full justify-center py-2.5 text-sm font-semibold"
               isLoading={isLoading}
               disabled={isLoading}
             >
-              Complete Registration & Access Portal
+              Create Account
             </Button>
           </form>
 

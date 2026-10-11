@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import {
   HeartPulse,
   X,
@@ -11,8 +11,7 @@ import {
   Calendar,
   UserCheck,
   Users,
-  FileText,
-  Layers
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -24,7 +23,6 @@ const NAV_ITEMS_BY_ROLE = {
     { name: 'Doctor Rosters & Leaves', path: '/doctors', icon: UserCheck },
     { name: 'Appointments & Slots', path: '/appointments', icon: Calendar },
     { name: 'Patient Directory', path: '/patients', icon: Users },
-    { name: 'Design System Rules', path: '/design-system', icon: Layers },
   ],
   Receptionist: [
     { name: 'Front Desk Dashboard', path: '/', icon: LayoutDashboard },
@@ -34,7 +32,6 @@ const NAV_ITEMS_BY_ROLE = {
     { name: 'Appointments & Slots', path: '/appointments', icon: Calendar },
     { name: 'Doctor Schedules & Leaves', path: '/doctors', icon: UserCheck },
     { name: 'Patient Directory & History', path: '/patients', icon: Users },
-    { name: 'Design System Rules', path: '/design-system', icon: Layers },
   ],
   Doctor: [
     { name: 'Consultation Desk', path: '/consultation', icon: Stethoscope },
@@ -43,7 +40,6 @@ const NAV_ITEMS_BY_ROLE = {
     { name: 'Appointments & Slots', path: '/appointments', icon: Calendar },
     { name: 'My Schedule & Leaves', path: '/doctors', icon: UserCheck },
     { name: 'Patient Medical History', path: '/patients', icon: FileText },
-    { name: 'Design System Rules', path: '/design-system', icon: Layers },
   ],
   Patient: [
     { name: 'My Health Portal', path: '/patient-portal', icon: HeartPulse },
@@ -157,10 +153,10 @@ export function Sidebar({ isOpen, onClose }) {
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-slate-100 text-xs text-slate-400">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="font-medium text-slate-600">CareQueue Auth v2.0</span>
+            <Link to="/privacy" className="hover:text-slate-700 hover:underline">Privacy Policy</Link>
+            <span aria-hidden="true">·</span>
+            <Link to="/terms" className="hover:text-slate-700 hover:underline">Terms</Link>
           </div>
-          <p className="mt-1 text-[11px]">JWT RBAC Security Active</p>
         </div>
       </aside>
     </>

@@ -16,24 +16,24 @@ import {
   User
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
-import { 
-  PageHeader, 
-  Button, 
-  Card, 
-  Badge, 
-  TokenBadge, 
-  ResponsiveTable, 
-  StatCard, 
-  EmptyState, 
+import {
+  PageHeader,
+  Button,
+  Card,
+  Badge,
+  TokenBadge,
+  ResponsiveTable,
+  StatCard,
+  EmptyState,
   Modal,
   FormField,
   Input,
-  Select 
+  Select
 } from '../components/ui';
 
 export function PatientsPage() {
   const { patients, pastVisits, getPatientHistory, addPatient, updatePatient } = useClinic();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPatientForProfile, setSelectedPatientForProfile] = useState(null);
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false);
@@ -163,7 +163,7 @@ export function PatientsPage() {
       accessor: 'name',
       primaryMobile: true,
       render: (name, row) => (
-        <div 
+        <div
           className="cursor-pointer group py-1"
           onClick={() => setSelectedPatientForProfile(row)}
         >
@@ -171,7 +171,7 @@ export function PatientsPage() {
             <span className="font-bold text-slate-900 group-hover:text-brand-600 transition-colors">
               {name}
             </span>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
               {row.bloodGroup}
             </span>
           </div>
@@ -199,7 +199,7 @@ export function PatientsPage() {
       accessor: 'allergies',
       render: (allergies) => (
         <span
-          className={`text-xs px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1.5 ${
+          className={`text-xs px-2.5 py-1 rounded-md font-medium inline-flex items-center gap-1.5 ${
             allergies === 'None known'
               ? 'bg-slate-100 text-slate-600'
               : 'bg-rose-50 text-rose-700 border border-rose-200 font-semibold'
@@ -216,7 +216,7 @@ export function PatientsPage() {
       render: (id) => {
         const historyCount = getPatientHistory(id).length;
         return (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-full border border-brand-200">
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-md border border-brand-200">
             <CheckCircle2 className="w-3.5 h-3.5 text-brand-600" />
             {historyCount} {historyCount === 1 ? 'Past Visit' : 'Past Visits'}
           </span>
@@ -249,8 +249,8 @@ export function PatientsPage() {
   return (
     <div className="space-y-6 pb-10">
       <PageHeader
-        title="Patients Directory & Medical Profiles"
-        subtitle="Manage patient registrations, demographic profiles, and inspect comprehensive clinical visit timelines."
+        title="Patients"
+        subtitle="Register patients, update their details and see their visit history."
         breadcrumbs={['CareQueue', 'Front Desk', 'Patients']}
         badge={<Badge variant="teal">{patients.length} Registered Patients</Badge>}
         actions={
@@ -271,21 +271,18 @@ export function PatientsPage() {
           value={patients.length.toString()}
           icon={Users}
           iconColor="teal"
-          badgeText="Active Directory"
         />
         <StatCard
-          title="Total Completed Visits"
+          title="Completed Visits"
           value={pastVisits.length.toString()}
           icon={CheckCircle2}
           iconColor="emerald"
-          subtitle="Full timeline & diagnoses logged"
         />
         <StatCard
           title="Avg Visits Per Patient"
           value={(pastVisits.length / Math.max(patients.length, 1)).toFixed(1)}
           icon={Activity}
           iconColor="blue"
-          trend={{ value: '100% electronic records', isPositive: true }}
         />
       </div>
 
@@ -302,9 +299,9 @@ export function PatientsPage() {
               className="w-full text-xs sm:text-sm bg-transparent outline-none placeholder-slate-400 text-slate-800"
             />
             {searchTerm && (
-              <button 
-                type="button" 
-                onClick={() => setSearchTerm('')} 
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
                 className="text-xs text-slate-400 hover:text-slate-600 font-bold"
               >
                 ×
@@ -370,7 +367,7 @@ export function PatientsPage() {
         {selectedPatientForProfile && (
           <div className="space-y-6 max-h-[72vh] overflow-y-auto pr-1">
             {/* Patient Demographic Summary Card */}
-            <div className="bg-gradient-to-br from-slate-50 to-brand-50/30 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-brand-600 text-white font-bold text-lg flex items-center justify-center shadow-soft">
@@ -387,7 +384,7 @@ export function PatientsPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-brand-100 text-brand-800 border border-brand-200">
+                  <span className="text-xs font-bold px-3 py-1 rounded-md bg-brand-100 text-brand-800 border border-brand-200">
                     Blood: {selectedPatientForProfile.bloodGroup}
                   </span>
                   <Badge variant="teal">Registered</Badge>
@@ -639,7 +636,7 @@ export function PatientsPage() {
             >
               <Input
                 id="patient-phone"
-                placeholder="+1 555-0100"
+                placeholder="+91 98765 43210"
                 value={patientForm.phone}
                 onChange={(e) => setPatientForm({ ...patientForm, phone: e.target.value })}
                 error={formErrors.phone}
@@ -703,7 +700,7 @@ export function PatientsPage() {
           >
             <Input
               id="patient-emergency"
-              placeholder="e.g. Danny Pink (Spouse) - +1 555-0101"
+              placeholder="e.g. Asha Patil (spouse), +91 98765 43211"
               value={patientForm.emergencyContact}
               onChange={(e) => setPatientForm({ ...patientForm, emergencyContact: e.target.value })}
               disabled={isSubmitting}

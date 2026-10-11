@@ -3,7 +3,7 @@ import { Hash } from 'lucide-react';
 
 /**
  * TokenBadge: Healthcare Queue Ticket / Token Display
- * Format: Large bold pills, e.g., D1-07, T-102
+ * Format: bold ticket label, e.g., D1-07
  */
 export function TokenBadge({
   token,
@@ -29,7 +29,7 @@ export function TokenBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-mono font-bold border transition-colors select-none ${variantStyles} ${sizeStyles} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-md font-mono font-bold border transition-colors select-none ${variantStyles} ${sizeStyles} ${className}`}
       title={`Queue Token: ${displayToken}`}
     >
       <Hash className="w-3.5 h-3.5 opacity-50 shrink-0" />

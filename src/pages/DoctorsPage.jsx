@@ -13,18 +13,18 @@ import { useClinic } from '../context/ClinicContext';
 import { useAuth } from '../context/AuthContext';
 import { formatRs } from '../utils/currency';
 import { todayISO } from '../utils/date';
-import { 
-  PageHeader, 
-  Button, 
-  Card, 
-  CardHeader, 
-  Badge, 
+import {
+  PageHeader,
+  Button,
+  Card,
+  CardHeader,
+  Badge,
   TokenBadge,
-  Modal, 
-  FormField, 
-  Input, 
-  Select, 
-  EmptyState 
+  Modal,
+  FormField,
+  Input,
+  Select,
+  EmptyState
 } from '../components/ui';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -33,16 +33,16 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const upcomingLeaves = (doctor) => (doctor.leaves || []).filter((d) => d >= todayISO());
 
 export function DoctorsPage() {
-  const { 
-    doctors, 
-    generateDoctorSlots, 
-    addDoctorLeave, 
+  const {
+    doctors,
+    generateDoctorSlots,
+    addDoctorLeave,
     removeDoctorLeave,
     updateDoctorSchedule,
     updateDoctorFee,
-    getDoctorBookingsOnDate 
+    getDoctorBookingsOnDate
   } = useClinic();
-  
+
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
   const ownDoctorId = user?.role === 'Doctor' ? user.doctorId : null;
@@ -75,7 +75,7 @@ export function DoctorsPage() {
   const slotInspection = generateDoctorSlots(selectedDoctorId, testDate);
 
   // Affected patients for currently chosen doctor & date in Mark Leave modal
-  const affectedBookings = leaveDoctorId && newLeaveDate 
+  const affectedBookings = leaveDoctorId && newLeaveDate
     ? getDoctorBookingsOnDate(leaveDoctorId, newLeaveDate)
     : [];
 
@@ -96,7 +96,7 @@ export function DoctorsPage() {
   const handleToggleDay = (day) => {
     setEditForm((prev) => {
       const exists = prev.workingDays.includes(day);
-      const updated = exists 
+      const updated = exists
         ? prev.workingDays.filter((d) => d !== day)
         : [...prev.workingDays, day];
       return { ...prev, workingDays: updated };
@@ -169,7 +169,7 @@ export function DoctorsPage() {
     if (affectedCount > 0) {
       toast.success(
         `Leave marked for ${targetDoc?.name} on ${newLeaveDate}. Note: ${affectedCount} patient booking(s) affected!`,
-        { duration: 5000, icon: '⚠️' }
+        { duration: 5000 }
       );
     } else {
       toast.success(`Leave scheduled for ${targetDoc?.name} on ${newLeaveDate}`);
@@ -192,10 +192,10 @@ export function DoctorsPage() {
     <div className="space-y-8 pb-10">
       {/* Page Header */}
       <PageHeader
-        title="Doctor Schedules & Roster Management"
-        subtitle="Manage working days, daily consultation hours, 15-minute slot generator rules, and scheduled leaves with conflict warnings."
+        title="Doctors & Schedules"
+        subtitle="Working days, consultation hours, slot length, leave and fees for each doctor."
         breadcrumbs={['CareQueue', 'Medical Staff', 'Doctor Schedules']}
-        badge={<Badge variant="teal">{doctors.length} Active Doctor Rosters</Badge>}
+        badge={<Badge variant="teal">{doctors.length} {doctors.length === 1 ? 'Doctor' : 'Doctors'}</Badge>}
         actions={
           <Button
             variant="primary"
@@ -213,16 +213,14 @@ export function DoctorsPage() {
           <Info className="w-5 h-5" />
         </div>
         <div className="text-xs sm:text-sm text-brand-950 space-y-1">
-          <p className="font-bold text-brand-900">
-            Dynamic Slot Computation Engine Active
-          </p>
+          <p className="font-semibold text-brand-900">How appointment times are worked out</p>
           <p className="text-brand-800/90 leading-relaxed">
-            Consultation slots are <strong>never stored as a static database list</strong>. They are calculated dynamically on demand using each doctor's <code className="font-mono bg-brand-100 text-brand-900 px-1 py-0.5 rounded">workingDays</code> (e.g. Mon–Sat), <code className="font-mono bg-brand-100 text-brand-900 px-1 py-0.5 rounded">startTime</code>, <code className="font-mono bg-brand-100 text-brand-900 px-1 py-0.5 rounded">endTime</code>, and <code className="font-mono bg-brand-100 text-brand-900 px-1 py-0.5 rounded">slotDuration (15 min)</code>. A doctor marked on leave generates <strong>zero slots</strong> on that date.
+            Bookable times are generated from each doctor's working days, start and end time, and slot length. No times are offered on a day the doctor is on leave.
           </p>
         </div>
       </div>
 
-      {/* 3 Seeded Doctors Overview Grid with Cards */}
+      {/* Doctor cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {doctors.map((doctor) => {
           const isSelected = doctor.id === selectedDoctorId;
@@ -577,7 +575,7 @@ export function DoctorsPage() {
         </form>
       </Modal>
 
-      {/* "Mark Leave" Modal with Real-time Booking Conflict Warning */}
+      {/* "Mark Leave" modal, warns about existing bookings on that date */}
       <Modal
         isOpen={isLeaveModalOpen}
         onClose={() => setIsLeaveModalOpen(false)}
@@ -666,7 +664,7 @@ export function DoctorsPage() {
 
                     <div className="flex items-center gap-2">
                       <Badge status={apt.status} size="sm" />
-                      <span className="text-[11px] font-semibold text-rose-700 bg-rose-100/70 px-2 py-0.5 rounded-full">
+                      <span className="text-[11px] font-semibold text-rose-700 bg-rose-100/70 px-2 py-0.5 rounded-md">
                         Needs Reschedule
                       </span>
                     </div>

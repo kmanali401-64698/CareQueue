@@ -1,10 +1,10 @@
 import React from 'react';
 import {
   Printer,
-  HeartPulse,
   AlertCircle
 } from 'lucide-react';
 import { Button } from '../ui';
+import { ClinicLetterhead } from './ClinicLetterhead';
 
 export function PrintablePrescription({ prescription, onClose }) {
   if (!prescription) return null;
@@ -13,7 +13,7 @@ export function PrintablePrescription({ prescription, onClose }) {
     window.print();
   };
 
-  // Missing fields render blank — never another patient's or doctor's details
+  // Missing fields render blank, never another patient's or doctor's details
   const {
     doctorName = '',
     doctorSpecialty = '',
@@ -40,7 +40,7 @@ export function PrintablePrescription({ prescription, onClose }) {
           <div className="flex items-center gap-2">
             <Printer className="w-4 h-4 text-brand-400" />
             <span className="font-semibold text-xs sm:text-sm tracking-wide">
-              Official Medical Prescription Preview
+              Prescription preview
             </span>
           </div>
 
@@ -66,33 +66,7 @@ export function PrintablePrescription({ prescription, onClose }) {
 
         {/* Printable Prescription Document Area */}
         <div className="printable-sheet p-6 sm:p-10 space-y-6 bg-white text-slate-900 font-sans text-xs sm:text-sm">
-          {/* Clinic Official Header */}
-          <div className="border-b-2 border-brand-600 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold shadow-soft">
-                <HeartPulse className="w-7 h-7" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black text-brand-900 tracking-tight uppercase">
-                  CareQueue Medical Center
-                </h1>
-                <p className="text-xs text-brand-700 font-semibold tracking-wider uppercase">
-                  Department of Outpatient Clinical Care & Specialist OPD
-                </p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  100 Health Sciences Blvd, Suite 400 • Medical District • Tel: (555) 019-CARE
-                </p>
-              </div>
-            </div>
-
-            <div className="text-right sm:border-l sm:pl-4 border-slate-200 text-xs">
-              <span className="font-mono font-bold text-brand-800 block text-sm">
-                Reg: CL-2026-8891
-              </span>
-              <span className="text-slate-500 block text-[11px]">Accredited Healthcare Facility</span>
-              <span className="text-slate-400 block text-[10px]">Govt. Health Lic. #49281-B</span>
-            </div>
-          </div>
+          <ClinicLetterhead />
 
           {/* Doctor Details Bar */}
           <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -218,7 +192,6 @@ export function PrintablePrescription({ prescription, onClose }) {
             <div className="space-y-1 text-slate-500 text-[11px]">
               <p className="font-semibold text-slate-700">Notice to Pharmacist:</p>
               <p>Dispense strictly as prescribed. Do not substitute active salts without physician approval.</p>
-              <p className="text-[10px] text-slate-400">Generated securely via CareQueue EMR System</p>
             </div>
 
             <div className="text-center space-y-1 min-w-[200px]">

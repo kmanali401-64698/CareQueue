@@ -36,10 +36,10 @@ const EMPTY_MEDICINE = { name: '', dosage: '', frequency: '', duration: '', inst
 
 export function ConsultationPage() {
   const { user } = useAuth();
-  const { 
-    doctors, 
-    patients, 
-    appointments, 
+  const {
+    doctors,
+    patients,
+    appointments,
     getPatientHistory,
     completeVisit,
     updateAppointmentStatus
@@ -241,8 +241,8 @@ export function ConsultationPage() {
     <div className="space-y-6 pb-12">
       {/* Top Header */}
       <PageHeader
-        title="Doctor Consultation & Clinical EMR"
-        subtitle="Active consultation room, real-time prescription builder, and patient historical visits panel."
+        title="Consultation"
+        subtitle="Record the diagnosis and prescription for the patient you are seeing."
         breadcrumbs={['CareQueue', 'Clinical OPD', 'Consultation']}
         badge={
           <Badge variant="teal">
@@ -351,7 +351,7 @@ export function ConsultationPage() {
           {activeAppointment && activePatient ? (
             <>
               {/* Patient Banner */}
-              <div className="bg-gradient-to-r from-brand-50/70 via-white to-slate-50 border border-brand-200/80 rounded-2xl p-4 sm:p-5 shadow-soft">
+              <div className="bg-white border border-brand-200 rounded-2xl p-4 sm:p-5 shadow-soft">
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-brand-100">
                   <div className="flex items-center gap-3">
                     <TokenBadge token={activeAppointment.token} size="md" />
@@ -360,7 +360,7 @@ export function ConsultationPage() {
                         <h2 className="text-base sm:text-lg font-bold text-slate-900">
                           {activePatient.name}
                         </h2>
-                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-brand-100 text-brand-800">
+                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-brand-100 text-brand-800">
                           {activePatient.bloodGroup}
                         </span>
                       </div>
@@ -551,7 +551,7 @@ export function ConsultationPage() {
           )}
         </div>
 
-        {/* Right Side: MANDATORY SIDE PANEL (Patient's Previous Visits & Prescriptions) */}
+        {/* Right side: the patient's previous visits and prescriptions */}
         <aside className="lg:col-span-4 space-y-4">
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-soft space-y-4">
             {/* Side Panel Header */}

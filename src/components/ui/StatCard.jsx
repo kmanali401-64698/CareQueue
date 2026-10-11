@@ -8,13 +8,12 @@ export function StatCard({
   trend, // { value: '+12%', isPositive: true/false/neutral, label: 'vs yesterday' }
   subtitle,
   badgeText,
-  iconColor = 'teal', // 'teal' | 'blue' | 'purple' | 'amber' | 'emerald'
+  iconColor = 'teal', // 'teal' | 'blue' | 'amber' | 'emerald' | 'rose'
   className = '',
 }) {
   const iconColors = {
     teal: 'bg-brand-50 text-brand-600 border border-brand-200/60',
     blue: 'bg-blue-50 text-blue-600 border border-blue-200/60',
-    purple: 'bg-purple-50 text-purple-600 border border-purple-200/60',
     amber: 'bg-amber-50 text-amber-600 border border-amber-200/60',
     emerald: 'bg-emerald-50 text-emerald-600 border border-emerald-200/60',
     rose: 'bg-rose-50 text-rose-600 border border-rose-200/60',
@@ -34,7 +33,7 @@ export function StatCard({
       <div className="mt-3 flex items-baseline gap-2">
         <span className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight whitespace-nowrap">{value}</span>
         {badgeText && (
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
             {badgeText}
           </span>
         )}
